@@ -7,8 +7,9 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
       'http://localhost:5173', # Vite default port
       'https://saturday-league-football-frontend.vercel.app' # Your production domain
     ]
-    resource '*',
+    resource '/api/v1/*',
              headers: :any,
-             methods: %i[get post put patch delete options head]
+             methods: %i[get post put patch delete options head],
+             max_age: 600
   end
 end

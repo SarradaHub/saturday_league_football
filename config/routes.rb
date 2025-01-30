@@ -13,11 +13,16 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   # root "posts#index"
+  namespace :api do
+    namespace :v1 do
+      resources :championships, defaults: { format: :json }
+      resources :rounds, defaults: { format: :json }
+      resources :matches, defaults: { format: :json }
+      resources :teams, defaults: { format: :json }
+      resources :players, defaults: { format: :json }
+      resources :player_stats, defaults: { format: :json }
 
-  resources :championships, defaults: { format: :json }
-  resources :rounds, defaults: { format: :json }
-  resources :matches, defaults: { format: :json }
-  resources :teams, defaults: { format: :json }
-  resources :players, defaults: { format: :json }
-  resources :player_stats, defaults: { format: :json }
+      match '*any', via: [:options], to: -> (_) { [204, { 'Content-Type' => 'text/plain' }, []] }
+    end
+  end
 end
