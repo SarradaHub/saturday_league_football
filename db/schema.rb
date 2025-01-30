@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2024_12_24_014444) do
+ActiveRecord::Schema[8.0].define(version: 2025_01_30_012017) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,6 +18,7 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_24_014444) do
     t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "description"
   end
 
   create_table "matches", force: :cascade do |t|
@@ -29,10 +30,21 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_24_014444) do
     t.boolean "draw"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "team_1_goals"
+    t.integer "team_2_goals"
     t.index ["round_id"], name: "index_matches_on_round_id"
     t.index ["team_1_id"], name: "index_matches_on_team_1_id"
     t.index ["team_2_id"], name: "index_matches_on_team_2_id"
     t.index ["winning_team_id"], name: "index_matches_on_winning_team_id"
+  end
+
+  create_table "player_rounds", force: :cascade do |t|
+    t.bigint "player_id"
+    t.bigint "round_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["player_id"], name: "index_player_rounds_on_player_id"
+    t.index ["round_id"], name: "index_player_rounds_on_round_id"
   end
 
   create_table "player_stats", force: :cascade do |t|
@@ -84,6 +96,8 @@ ActiveRecord::Schema[8.0].define(version: 2024_12_24_014444) do
   add_foreign_key "matches", "teams", column: "team_1_id"
   add_foreign_key "matches", "teams", column: "team_2_id"
   add_foreign_key "matches", "teams", column: "winning_team_id"
+  add_foreign_key "player_rounds", "players"
+  add_foreign_key "player_rounds", "rounds"
   add_foreign_key "player_stats", "matches"
   add_foreign_key "player_stats", "players"
   add_foreign_key "player_stats", "teams"

@@ -3,8 +3,7 @@
 class RoundsController < ApplicationController
   before_action :set_round, only: %i[show update destroy]
   def index
-    @rounds = Round.all
-    render json: @rounds
+    @rounds = Round.all.order(round_date: :desc)
   end
 
   def show; end

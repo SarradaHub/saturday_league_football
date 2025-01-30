@@ -14,9 +14,10 @@ Rails.application.routes.draw do
   # Defines the root path route ("/")
   # root "posts#index"
 
-  resources :championships
-  resources :rounds
-  resources :matches
-  resources :teams
-  resources :players
+  resources :championships, defaults: { format: :json }
+  resources :rounds, defaults: { format: :json }
+  resources :matches, defaults: { format: :json }
+  resources :teams, defaults: { format: :json }
+  resources :players, defaults: { format: :json }
+  resources :player_stats, defaults: { format: :json }
 end

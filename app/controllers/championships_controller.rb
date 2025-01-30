@@ -3,13 +3,10 @@
 class ChampionshipsController < ApplicationController
   before_action :set_championship, only: %i[show update destroy]
   def index
-    @championships = Championship.all.includes(:rounds)
-    render json: @championships.as_json(include: :rounds, methods: :round_total)
+    @championships = Championship.all.includes(:rounds).order(updated_at: :desc)
   end
 
-  def show
-    render json: @championship.as_json(include: :rounds)
-  end
+  def show; end
 
   def create
     @championship = Championship.new(championship_params)
@@ -39,6 +36,6 @@ class ChampionshipsController < ApplicationController
   end
 
   def championship_params
-    params.require(:championship).permit(:name)
+    params.require(:championship).permit(:name, :description)
   end
 end
