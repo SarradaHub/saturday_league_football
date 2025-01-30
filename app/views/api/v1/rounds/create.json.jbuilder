@@ -3,7 +3,7 @@
 if @round.persisted?
   json.status :created
   json.data do
-    json.partial! 'rounds/round', resource: @round
+    json.partial! 'api/v1/rounds/round', resource: @round
   end
 else
   json.status :unprocessable_entity

@@ -1,3 +1,3 @@
 # frozen_string_literal: true
 
-json.partial! @championship, partial: 'championships/championship', as: :championship
+json.partial! @championship, partial: 'api/v1/championships/championship', as: :championship

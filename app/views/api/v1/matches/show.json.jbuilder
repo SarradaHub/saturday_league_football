@@ -1,3 +1,3 @@
 # frozen_string_literal: true
 
-json.partial! @match, partial: 'matches/match', as: :match
+json.partial! @match, partial: 'api/v1/matches/match', as: :match
