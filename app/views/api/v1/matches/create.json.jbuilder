@@ -3,7 +3,7 @@
 if @match.persisted?
   json.status :created
   json.data do
-    json.partial! 'matches/match', resource: @match
+    json.partial! 'api/v1/matches/match', resource: @match
   end
 else
   json.status :unprocessable_entity

@@ -8,9 +8,9 @@ json.created_at round.created_at
 json.updated_at round.updated_at
 
 json.matches do
-  json.array! round.matches, partial: 'matches/match_list', as: :match
+  json.array! round.matches, partial: 'api/v1/matches/match_list', as: :match
 end
 
 json.players do
-  json.array! round.players.distinct, partial: 'players/player_list', as: :player
+  json.array! round.players.distinct, partial: 'api/v1/players/player_list', as: :player
 end

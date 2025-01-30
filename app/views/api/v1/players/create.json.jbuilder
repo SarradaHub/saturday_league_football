@@ -3,7 +3,7 @@
 if @player.persisted?
   json.status :created
   json.data do
-    json.partial! 'players/player', resource: @player
+    json.partial! 'api/v1/players/player', resource: @player
   end
 else
   json.status :unprocessable_entity
