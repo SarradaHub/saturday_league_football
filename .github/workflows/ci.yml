@@ -71,15 +71,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libvips libjemalloc2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.node-version'
-          cache: 'npm'
-
-      - name: Install JavaScript dependencies
-        run: npm ci
-
       - name: Wait for PostgreSQL
         run: |
           for i in {1..10}; do
@@ -88,7 +79,7 @@ jobs:
 
       - name: Setup database
         run: |
-          bin/rails db:create db:schema:load test:prepare
+          bin/rails db:setup test:prepare
 
       - name: Run RSpec
         run: bundle exec rspec
