@@ -6,7 +6,6 @@ gem 'bootsnap', require: false
 gem 'dotenv-rails'
 gem 'foreman'
 gem 'jbuilder'
-gem 'jsbundling-rails'
 gem 'kamal', require: false
 gem 'pg', '~> 1.1'
 gem 'propshaft'

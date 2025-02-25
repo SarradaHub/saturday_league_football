@@ -79,7 +79,7 @@ jobs:
 
       - name: Setup database
         run: |
-          bin/rails db:create db:schema:load test:prepare
+          bin/rails db:setup test:prepare
 
       - name: Run RSpec
         run: bundle exec rspec
