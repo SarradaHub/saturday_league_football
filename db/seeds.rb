@@ -33,7 +33,7 @@ begin
   end
 
   print_header "CREATING PLAYERS"
-  players = 27.times.map do |i|
+  players = 30.times.map do |i|
     player = FactoryBot.create(:player)
     print_item "Player #{i+1}", player.name
     player
@@ -51,7 +51,7 @@ begin
     print_item "Working on Championship: #{championship.name}"
 
     rounds = 3.times.map do |i|
-      round = FactoryBot.create(:round, championship: championship)
+      round = FactoryBot.create(:round, name: "#{(i+1).ordinalize} Rodada", championship: championship)
       print_subitem "Round #{i+1}", round.name, round.round_date.to_s
       round
     end
@@ -63,7 +63,7 @@ begin
         team1, team2 = teams.sample(2)
         match = FactoryBot.create(:match,
                                   round: round,
-                                  name: "#{(i+1).ordinalize} Match",
+                                  name: "#{(i+1).ordinalize} Partida",
                                   team_1: team1,
                                   team_2: team2,
                                   winning_team_id: [team1.id, team2.id].sample,
@@ -84,7 +84,7 @@ begin
                                    team: team,
                                    match: match,
                                    goals: rand(0..2),
-                                   own_goals: rand(0..2),
+                                   own_goals: 0,
                                    assists: rand(0..2),
                                    was_goalkeeper: [true, false].sample
           )

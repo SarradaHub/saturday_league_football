@@ -8,7 +8,12 @@ module Api
         @matches = Match.all
       end
 
-      def show; end
+      def show
+        @match = Match.includes(
+          team_1: { players: :player_stats },
+          team_2: { players: :player_stats }
+        ).find(params[:id])
+      end
 
       def create
         @match = Match.new(match_params)

@@ -11,4 +11,28 @@ class Player < ApplicationRecord
   has_many :championships, through: :rounds
 
   validates_presence_of :name
+
+  def total_goals
+    player_stats.sum(:goals)
+  end
+
+  def total_assists
+    player_stats.sum(:assists)
+  end
+
+  def total_own_goals
+    player_stats.sum(:own_goals)
+  end
+
+  def goals_in_match(match)
+    player_stats.where(match: match).sum(:goals)
+  end
+
+  def assists_in_match(match)
+    player_stats.where(match: match).sum(:assists)
+  end
+
+  def own_goals_in_match(match)
+    player_stats.where(match: match).sum(:own_goals)
+  end
 end
