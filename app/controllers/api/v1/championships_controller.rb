@@ -13,7 +13,7 @@ module Api
       def create
         @championship = Championship.new(championship_params)
         if @championship.save
-          render json: @championship, status: :created, location: @championship
+          render json: @championship, status: :created
         else
           render json: @championship.errors, status: :unprocessable_entity
         end
