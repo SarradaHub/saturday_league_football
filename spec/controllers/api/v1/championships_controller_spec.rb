@@ -15,9 +15,9 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
   describe '#create' do
     context 'with valid params' do
       it 'creates a new championship' do
-        expect {
+        expect do
           post :create, params: { championship: { name: 'La Liga' } }, format: :json
-        }.to change(Championship, :count).by(1)
+        end.to change(Championship, :count).by(1)
 
         expect(response).to have_http_status(:created)
       end
@@ -25,9 +25,9 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
 
     context 'with invalid params' do
       it 'does not create a new championship' do
-        expect {
+        expect do
           post :create, params: { championship: { name: '' } }, format: :json
-        }.not_to change(Championship, :count)
+        end.not_to change(Championship, :count)
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
