@@ -6,6 +6,7 @@ class Round < ApplicationRecord
   has_many :player_rounds
   accepts_nested_attributes_for :player_rounds, allow_destroy: true
   has_many :players, through: :player_rounds
+  has_many :teams
 
   validates_presence_of :name
   validates_presence_of :round_date

@@ -13,7 +13,7 @@ module Api
       def create
         @team = Team.new(team_params)
         if @team.save
-          render json: @team, status: :created, location: @team
+          render json: @team, status: :created
         else
           render json: @team.errors, status: :unprocessable_entity
         end
@@ -38,7 +38,7 @@ module Api
       end
 
       def team_params
-        params.require(:team).permit(:name, player_teams_attributes: %i[id player_id _destroy])
+        params.require(:team).permit(:name, :round_id, player_teams_attributes: %i[id player_id _destroy])
       end
     end
   end

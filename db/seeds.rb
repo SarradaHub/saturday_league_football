@@ -1,5 +1,3 @@
-# db/seeds.rb
-
 def print_header(title)
   puts "\n\e[33m== #{title} ==\e[0m"
 end
@@ -40,8 +38,18 @@ begin
   end
 
   print_header "ASSIGNING PLAYERS TO TEAMS"
-  players.each do |player|
-    team = teams.sample
+  shuffled_players = players.shuffle
+  # Distribute players evenly (3-4 per team)
+  teams.each do |team|
+    players_for_team = shuffled_players.shift(3)
+    players_for_team.each do |player|
+      pt = FactoryBot.create(:player_team, player: player, team: team)
+      print_item "PlayerTeam ##{pt.id}", "Player: #{player.name}", "Team: #{team.name}"
+    end
+  end
+  # Assign remaining players to first 3 teams
+  teams.take(3).each do |team|
+    player = shuffled_players.shift
     pt = FactoryBot.create(:player_team, player: player, team: team)
     print_item "PlayerTeam ##{pt.id}", "Player: #{player.name}", "Team: #{team.name}"
   end
@@ -56,26 +64,37 @@ begin
       round
     end
 
+    # Assign 3 teams to each round
+    shuffled_teams = teams.shuffle
+    rounds.each_with_index do |round, index|
+      round_teams = shuffled_teams[index*3, 3]
+      round_teams.each do |team|
+        team.update!(round_id: round.id)
+        print_subitem "Assigned Team #{team.name} to Round #{round.name}"
+      end
+    end
+
     rounds.each do |round|
       print_subitem "Creating matches for #{round.name}"
+      round_teams = Team.where(round_id: round.id).to_a
 
-      3.times do |i|
-        team1, team2 = teams.sample(2)
+      # Create all possible team combinations for matches
+      round_teams.combination(2).each do |team1, team2|
         match = FactoryBot.create(:match,
                                   round: round,
-                                  name: "#{(i+1).ordinalize} Partida",
+                                  name: "#{team1.name} vs #{team2.name}",
                                   team_1: team1,
                                   team_2: team2,
                                   winning_team_id: [team1.id, team2.id].sample,
                                   draw: false
         )
 
-        print_subitem "Match #{i+1}",
+        print_subitem "Match #{match.id}",
                       "#{team1.name} vs #{team2.name}",
                       "Winner: #{Team.find(match.winning_team_id).name}"
 
-        # Player Stats
-        3.times do |stat_num|
+        # Create player stats for this match
+        3.times do
           team = [team1, team2].sample
           player = team.players.sample
 
@@ -97,16 +116,13 @@ begin
         end
       end
 
-      # Player Rounds
+      # Assign 10 players to each round
       print_subitem "Creating player rounds for #{round.name}"
-      3.times do |i|
-        pr = FactoryBot.create(:player_round,
-                               round: round,
-                               player: players.sample
-        )
-        print_subitem "PlayerRound ##{pr.id}",
-                      "Player: #{pr.player.name}",
-                      "Round: #{round.name}"
+      shuffled_players = players.shuffle
+      players_for_round = shuffled_players.shift(10)
+      players_for_round.each do |player|
+        pr = FactoryBot.create(:player_round, round: round, player: player)
+        print_subitem "PlayerRound ##{pr.id}", "Player: #{pr.player.name}", "Round: #{round.name}"
       end
     end
   end

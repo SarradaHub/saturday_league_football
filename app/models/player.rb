@@ -12,6 +12,12 @@ class Player < ApplicationRecord
 
   validates_presence_of :name
 
+  scope :in_championship, ->(championship_id) {
+    joins(player_rounds: :round)
+      .where(rounds: { championship_id: championship_id })
+      .distinct
+  }
+
   def total_goals
     player_stats.sum(:goals)
   end
