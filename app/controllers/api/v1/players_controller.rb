@@ -5,11 +5,11 @@ module Api
     class PlayersController < Api::V1::ApplicationController
       before_action :set_player, only: %i[show update destroy]
       def index
-        if params[:championship_id]
-          players = Player.in_championship(params[:championship_id])
-        else
-          players = Player.all
-        end
+        players = if params[:championship_id]
+                    Player.in_championship(params[:championship_id])
+                  else
+                    Player.all
+                  end
         render json: players
       end
 
@@ -28,9 +28,7 @@ module Api
         player = Player.find(params[:id])
         round = Round.find(params[:round_id])
 
-        unless player.rounds.include?(round)
-          player.rounds << round
-        end
+        player.rounds << round unless player.rounds.include?(round)
 
         render json: player
       end
@@ -54,7 +52,8 @@ module Api
       end
 
       def player_params
-        params.require(:player).permit(:name, player_teams_attributes: %i[id team_id _destroy], player_rounds_attributes: %i[id round_id _destroy])
+        params.require(:player).permit(:name, player_teams_attributes: %i[id team_id _destroy],
+                                              player_rounds_attributes: %i[id round_id _destroy])
       end
     end
   end

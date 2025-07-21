@@ -12,7 +12,7 @@ class Player < ApplicationRecord
 
   validates_presence_of :name
 
-  scope :in_championship, ->(championship_id) {
+  scope :in_championship, lambda { |championship_id|
     joins(player_rounds: :round)
       .where(rounds: { championship_id: championship_id })
       .distinct
