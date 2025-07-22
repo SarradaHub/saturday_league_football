@@ -5,7 +5,8 @@ FROM ruby:3.3.6
 ENV RAILS_ENV=development \
     NODE_ENV=development \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLER_VERSION=2.4.0
+    BUNDLER_VERSION=2.4.0 \
+    PATH="/usr/local/bundle/bin:${PATH}"
 
 # Install required dependencies
 RUN apt-get update -qq && apt-get install -y \

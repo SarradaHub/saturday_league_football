@@ -21,6 +21,7 @@ Rails.application.routes.draw do
       resources :teams, defaults: { format: :json }
       resources :players, defaults: { format: :json } do
         post 'add_to_round', on: :member
+        post 'add_to_team', on: :member
       end
 
       resources :player_stats, defaults: { format: :json }

@@ -24,8 +24,6 @@ module Api
         end
       end
 
-      def edit; end
-
       def update
         if @player_stat.update(player_stat_params)
           redirect_to @player_stat, notice: 'PlayerStat was successfully updated.'

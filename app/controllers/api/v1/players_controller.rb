@@ -33,6 +33,15 @@ module Api
         render json: player
       end
 
+      def add_to_team
+        player = Player.find(params[:id])
+        team = Team.find(params[:team_id])
+
+        player.teams << team unless player.teams.include?(team)
+
+        render json: player
+      end
+
       def update
         if @player.update(player_params)
           render json: @player
