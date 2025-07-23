@@ -3,7 +3,7 @@
 module Api
   module V1
     class PlayersController < Api::V1::ApplicationController
-      before_action :set_player, only: %i[show update destroy]
+      before_action :set_player, only: %i[show update destroy add_to_round add_to_team match_stats]
       def index
         players = if params[:championship_id]
                     Player.in_championship(params[:championship_id])
@@ -25,21 +25,26 @@ module Api
       end
 
       def add_to_round
-        player = Player.find(params[:id])
         round = Round.find(params[:round_id])
 
-        player.rounds << round unless player.rounds.include?(round)
+        @player.rounds << round unless @player.rounds.include?(round)
 
-        render json: player
+        render json: @player
       end
 
       def add_to_team
-        player = Player.find(params[:id])
         team = Team.find(params[:team_id])
 
-        player.teams << team unless player.teams.include?(team)
+        @player.teams << team unless @player.teams.include?(team)
 
-        render json: player
+        render json: @player
+      end
+
+      def match_stats
+        match = Match.find(params[:match_id])
+        @goals_in_match = @player.goals_in_match(match)
+        @own_goals_in_match = @player.own_goals_in_match(match)
+        @assists_in_match = @player.assists_in_match(match)
       end
 
       def update

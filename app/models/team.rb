@@ -8,4 +8,8 @@ class Team < ApplicationRecord
   accepts_nested_attributes_for :player_teams, allow_destroy: true
 
   validates_presence_of :name
+
+  def matches
+    Match.where('team_1_id = ? OR team_2_id = ?', id, id)
+  end
 end
