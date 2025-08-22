@@ -5,7 +5,7 @@ module Api
     class RoundsController < Api::V1::ApplicationController
       before_action :set_round, only: %i[show update destroy]
       def index
-        @rounds = Round.all.order(round_date: :desc)
+        @rounds = Round.includes(:players).order(round_date: :desc).all
       end
 
       def show; end

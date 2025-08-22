@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_02_25_175133) do
+ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -30,8 +30,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_02_25_175133) do
     t.boolean "draw"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.integer "team_1_goals"
-    t.integer "team_2_goals"
     t.index ["round_id"], name: "index_matches_on_round_id"
     t.index ["team_1_id"], name: "index_matches_on_team_1_id"
     t.index ["team_2_id"], name: "index_matches_on_team_2_id"

@@ -41,10 +41,13 @@ module Api
       end
 
       def match_stats
+        team = Team.find(params[:team_id])
+        round = Round.find(params[:round_id])
         match = Match.find(params[:match_id])
         @goals_in_match = @player.goals_in_match(match)
         @own_goals_in_match = @player.own_goals_in_match(match)
         @assists_in_match = @player.assists_in_match(match)
+        @total_matches_for_a_team = @player.total_matches_for_a_team(team, round)
       end
 
       def update
