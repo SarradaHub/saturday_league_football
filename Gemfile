@@ -42,7 +42,7 @@ group :development, :test do
   gem 'rspec-core'
   gem 'rspec-expectations'
   gem 'rspec-mocks'
-  gem 'rspec-rails', '~> 7.1.0'
+  gem 'rspec-rails', '~> 8.0.2'
   gem 'simplecov'
 end
 
