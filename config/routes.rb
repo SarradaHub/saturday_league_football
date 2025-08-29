@@ -25,7 +25,10 @@ Rails.application.routes.draw do
         get 'match_stats', on: :member
       end
 
-      resources :player_stats, defaults: { format: :json }
+      resources :player_stats, defaults: { format: :json } do
+        get 'match/:match_id', action: :by_match, on: :collection
+        post 'match/:match_id/bulk', action: :bulk_update, on: :collection
+      end
 
       match '*any', via: [:options], to: -> (_) { [204, { 'Content-Type' => 'text/plain' }, []] }
     end
