@@ -7,7 +7,7 @@ gem 'dotenv-rails'
 gem 'foreman'
 gem 'jbuilder'
 gem 'kamal', require: false
-gem 'pg', '~> 1.1'
+gem 'pg', '~> 1.6'
 gem 'propshaft'
 gem 'puma', '>= 5.0'
 gem 'rack-cors'
