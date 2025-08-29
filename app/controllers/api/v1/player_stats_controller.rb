@@ -3,40 +3,59 @@
 module Api
   module V1
     class PlayerStatsController < Api::V1::ApplicationController
-      before_action :set_player_stat, only: %i[show edit update destroy]
+      before_action :set_player_stat, only: %i[show update destroy]
 
       def index
         @player_stats = PlayerStat.all
+        render json: @player_stats
       end
 
-      def show; end
-
-      def new
-        @player_stat = PlayerStat.new
+      def show
+        render json: @player_stat
       end
 
       def create
         @player_stat = PlayerStat.new(player_stat_params)
         if @player_stat.save
-          redirect_to @player_stat, notice: 'PlayerStat was successfully created.'
+          render json: @player_stat, status: :created
         else
-          render :new, status: :unprocessable_entity
+          render json: { errors: @player_stat.errors.full_messages }, status: :unprocessable_entity
         end
       end
 
-      def edit; end
-
       def update
         if @player_stat.update(player_stat_params)
-          redirect_to @player_stat, notice: 'PlayerStat was successfully updated.'
+          render json: @player_stat
         else
-          render :update, status: :unprocessable_entity
+          render json: { errors: @player_stat.errors.full_messages }, status: :unprocessable_entity
         end
       end
 
       def destroy
         @player_stat.destroy
-        redirect_to player_stats_url, notice: 'PlayerStat was successfully destroyed.'
+        head :no_content
+      end
+
+      # Get player stats by match ID
+      def by_match
+        match_id = params[:match_id]
+        @player_stats = PlayerStat.where(match_id: match_id).includes(:player, :team)
+        render json: @player_stats
+      end
+
+      # Bulk create/update player stats for a match
+      def bulk_update
+        match_id = params[:match_id]
+        player_stats_params = params[:player_stats]
+
+        ActiveRecord::Base.transaction do
+          delete_existing_stats(match_id)
+          create_new_stats(player_stats_params, match_id)
+        end
+
+        render_updated_stats(match_id)
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
       end
 
       private
@@ -48,6 +67,33 @@ module Api
       def player_stat_params
         params.require(:player_stat).permit(:goals, :own_goals, :assists, :was_goalkeeper, :player_id, :team_id,
                                             :match_id)
+      end
+
+      def delete_existing_stats(match_id)
+        PlayerStat.where(match_id: match_id).destroy_all
+      end
+
+      def create_new_stats(player_stats_params, match_id)
+        player_stats_params.each do |stat_params|
+          PlayerStat.create!(build_stat_attributes(stat_params, match_id))
+        end
+      end
+
+      def build_stat_attributes(stat_params, match_id)
+        {
+          goals: stat_params[:goals],
+          own_goals: stat_params[:own_goals],
+          assists: stat_params[:assists],
+          was_goalkeeper: stat_params[:was_goalkeeper],
+          player_id: stat_params[:player_id],
+          team_id: stat_params[:team_id],
+          match_id: match_id
+        }
+      end
+
+      def render_updated_stats(match_id)
+        @player_stats = PlayerStat.where(match_id: match_id).includes(:player, :team)
+        render json: @player_stats
       end
     end
   end

@@ -14,3 +14,7 @@ end
 json.players do
   json.array! round.players.distinct, partial: 'api/v1/players/player_list', as: :player
 end
+
+json.teams do
+  json.array! round.teams.distinct, partial: 'api/v1/teams/team_list', as: :team
+end

@@ -5,7 +5,7 @@ module Api
     class ChampionshipsController < Api::V1::ApplicationController
       before_action :set_championship, only: %i[show update destroy]
       def index
-        @championships = Championship.all.includes(:rounds).order(updated_at: :desc)
+        @championships = Championship.includes(rounds: :players).order(updated_at: :desc).all
       end
 
       def show; end
