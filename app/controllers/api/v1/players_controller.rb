@@ -41,13 +41,8 @@ module Api
       end
 
       def match_stats
-        team = Team.find(params[:team_id])
-        round = Round.find(params[:round_id])
-        match = Match.find(params[:match_id])
-        @goals_in_match = @player.goals_in_match(match.id)
-        @own_goals_in_match = @player.own_goals_in_match(match.id)
-        @assists_in_match = @player.assists_in_match(match.id)
-        @total_matches_for_a_team = @player.total_matches_for_a_team(team.id, round.id)
+        find_related_entities
+        calculate_match_statistics
       end
 
       def update
@@ -71,6 +66,19 @@ module Api
       def player_params
         params.require(:player).permit(:name, player_teams_attributes: %i[id team_id _destroy],
                                               player_rounds_attributes: %i[id round_id _destroy])
+      end
+
+      def find_related_entities
+        @team = Team.find(params[:team_id])
+        @round = Round.find(params[:round_id])
+        @match = Match.find(params[:match_id])
+      end
+
+      def calculate_match_statistics
+        @goals_in_match = @player.goals_in_match(@match.id)
+        @own_goals_in_match = @player.own_goals_in_match(@match.id)
+        @assists_in_match = @player.assists_in_match(@match.id)
+        @total_matches_for_a_team = @player.total_matches_for_a_team(@team.id, @round.id)
       end
     end
   end

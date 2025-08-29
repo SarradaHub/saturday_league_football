@@ -49,26 +49,11 @@ module Api
         player_stats_params = params[:player_stats]
 
         ActiveRecord::Base.transaction do
-          # Delete existing player stats for this match
-          PlayerStat.where(match_id: match_id).destroy_all
-
-          # Create new player stats
-          player_stats_params.each do |stat_params|
-            PlayerStat.create!(
-              goals: stat_params[:goals],
-              own_goals: stat_params[:own_goals],
-              assists: stat_params[:assists],
-              was_goalkeeper: stat_params[:was_goalkeeper],
-              player_id: stat_params[:player_id],
-              team_id: stat_params[:team_id],
-              match_id: match_id
-            )
-          end
+          delete_existing_stats(match_id)
+          create_new_stats(player_stats_params, match_id)
         end
 
-        # Return updated player stats for the match
-        @player_stats = PlayerStat.where(match_id: match_id).includes(:player, :team)
-        render json: @player_stats
+        render_updated_stats(match_id)
       rescue ActiveRecord::RecordInvalid => e
         render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
       end
@@ -82,6 +67,33 @@ module Api
       def player_stat_params
         params.require(:player_stat).permit(:goals, :own_goals, :assists, :was_goalkeeper, :player_id, :team_id,
                                             :match_id)
+      end
+
+      def delete_existing_stats(match_id)
+        PlayerStat.where(match_id: match_id).destroy_all
+      end
+
+      def create_new_stats(player_stats_params, match_id)
+        player_stats_params.each do |stat_params|
+          PlayerStat.create!(build_stat_attributes(stat_params, match_id))
+        end
+      end
+
+      def build_stat_attributes(stat_params, match_id)
+        {
+          goals: stat_params[:goals],
+          own_goals: stat_params[:own_goals],
+          assists: stat_params[:assists],
+          was_goalkeeper: stat_params[:was_goalkeeper],
+          player_id: stat_params[:player_id],
+          team_id: stat_params[:team_id],
+          match_id: match_id
+        }
+      end
+
+      def render_updated_stats(match_id)
+        @player_stats = PlayerStat.where(match_id: match_id).includes(:player, :team)
+        render json: @player_stats
       end
     end
   end
