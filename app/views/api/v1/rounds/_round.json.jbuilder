@@ -11,10 +11,13 @@ json.matches do
   json.array! round.matches, partial: 'api/v1/matches/match_list', as: :match
 end
 
+round_players = defined?(@players) ? @players : round.players.distinct
+
 json.players do
-  json.array! round.players.distinct, partial: 'api/v1/players/player_list', as: :player
+  json.array! round_players, partial: 'api/v1/players/player_list', as: :player
 end
 
 json.teams do
-  json.array! round.teams.distinct, partial: 'api/v1/teams/team_list', as: :team
+  json.array! round.teams.includes(player_teams: :player).order(:created_at),
+              partial: 'api/v1/teams/team_summary', as: :team
 end

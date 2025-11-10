@@ -27,17 +27,24 @@ module Api
       def add_to_round
         round = Round.find(params[:round_id])
 
-        @player.rounds << round unless @player.rounds.include?(round)
+        PlayerRound.find_or_create_by!(player: @player, round:)
 
-        render json: @player
+        @round = Round.includes(:players, teams: :players).find(round.id)
+
+        render 'api/v1/rounds/show', status: :ok
       end
 
       def add_to_team
         team = Team.find(params[:team_id])
 
-        @player.teams << team unless @player.teams.include?(team)
+        player_team = PlayerTeam.find_or_create_by(player: @player, team:)
+        if player_team.persisted?
+          @team = Team.includes(:players, :matches).find(team.id)
 
-        render json: @player
+          render 'api/v1/teams/show', status: :ok
+        else
+          render json: { errors: player_team.errors.full_messages }, status: :unprocessable_entity
+        end
       end
 
       def match_stats

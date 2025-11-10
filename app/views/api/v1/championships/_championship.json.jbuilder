@@ -3,6 +3,8 @@
 json.id championship.id
 json.name championship.name
 json.description championship.description
+json.min_players_per_team championship.min_players_per_team
+json.max_players_per_team championship.max_players_per_team
 json.total_players championship.total_players
 json.round_total championship.round_total
 json.created_at championship.created_at
