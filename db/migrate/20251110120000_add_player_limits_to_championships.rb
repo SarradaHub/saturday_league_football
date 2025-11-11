@@ -18,4 +18,3 @@ class AddPlayerLimitsToChampionships < ActiveRecord::Migration[8.0]
     remove_column :championships, :max_players_per_team
   end
 end
-

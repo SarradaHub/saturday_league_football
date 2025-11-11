@@ -25,5 +25,3 @@ RSpec.describe PlayerRound, type: :model do
     end
   end
 end
-
-

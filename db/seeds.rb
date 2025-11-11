@@ -31,27 +31,51 @@ begin
   end
 
   print_header "CREATING PLAYERS"
-  players = 30.times.map do |i|
-    player = FactoryBot.create(:player)
-    print_item "Player #{i+1}", player.name
-    player
+  min_players_per_team = championships.map(&:min_players_per_team).max
+  max_players_per_team = championships.map(&:max_players_per_team).min
+
+  if min_players_per_team > max_players_per_team
+    raise "Minimum players per team (#{min_players_per_team}) exceeds maximum players per team (#{max_players_per_team})"
+  end
+
+  team_players = Hash.new { |hash, key| hash[key] = [] }
+  players = []
+
+  teams.each_with_index do |team, index|
+    player_target_count = rand(min_players_per_team..max_players_per_team)
+    print_item "Allocating players for Team #{index + 1}", team.name, "#{player_target_count} players"
+
+    player_target_count.times do
+      player = FactoryBot.create(:player)
+      players << player
+      team_players[team] << player
+      print_subitem "Created Player #{players.size}", player.name
+    end
   end
 
   print_header "ASSIGNING PLAYERS TO TEAMS"
-  shuffled_players = players.shuffle
-  # Distribute players evenly (3-4 per team)
   teams.each do |team|
-    players_for_team = shuffled_players.shift(3)
-    players_for_team.each do |player|
+    team_players[team].each do |player|
       pt = FactoryBot.create(:player_team, player: player, team: team)
       print_item "PlayerTeam ##{pt.id}", "Player: #{player.name}", "Team: #{team.name}"
     end
+
+    if team.player_teams.empty?
+      fallback_player = FactoryBot.create(:player)
+      players << fallback_player
+      pt = FactoryBot.create(:player_team, player: fallback_player, team: team)
+      print_item "PlayerTeam ##{pt.id}", "Player: #{fallback_player.name}", "Team: #{team.name}", "Fallback assignment"
+    end
   end
-  # Assign remaining players to first 3 teams
-  teams.take(3).each do |team|
-    player = shuffled_players.shift
-    pt = FactoryBot.create(:player_team, player: player, team: team)
-    print_item "PlayerTeam ##{pt.id}", "Player: #{player.name}", "Team: #{team.name}"
+
+  ensure_player_for_team = lambda do |team|
+    player = team.players.sample
+    return player if player.present?
+
+    fallback_player = FactoryBot.create(:player)
+    players << fallback_player
+    FactoryBot.create(:player_team, player: fallback_player, team: team)
+    fallback_player
   end
 
   print_header "BUILDING CHAMPIONSHIP STRUCTURE"
@@ -96,7 +120,7 @@ begin
         # Create player stats for this match
         3.times do
           team = [team1, team2].sample
-          player = team.players.sample
+          player = ensure_player_for_team.call(team)
 
           stat = FactoryBot.create(:player_stat,
                                    player: player,

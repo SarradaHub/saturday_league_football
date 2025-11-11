@@ -11,5 +11,3 @@ json.updated_at team.updated_at
 json.players do
   json.array! team_players, partial: 'api/v1/players/player_list', as: :player
 end
-
-

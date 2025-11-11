@@ -19,7 +19,6 @@ class RoundTeamGenerator
 
     players = ordered_players
     adjust_team_count_for_max_limit(players.size)
-    adjust_team_count_for_min_limit(players.size)
 
     ActiveRecord::Base.transaction do
       ensure_minimum_teams(players.any?)
@@ -63,9 +62,21 @@ class RoundTeamGenerator
 
     ensure_distribution_respects_limits(players, teams)
 
-    players.each_with_index do |player, index|
-      team = teams[index % teams.length]
-      PlayerTeam.create!(player:, team:)
+    max_players_per_team = round&.championship&.max_players_per_team.to_i
+
+    if max_players_per_team.positive?
+      required_teams = (players.size.to_f / max_players_per_team).ceil
+      teams_to_use = teams.first([required_teams, 1].max)
+
+      players.each_with_index do |player, index|
+        team_index = [index / max_players_per_team, teams_to_use.length - 1].min
+        PlayerTeam.create!(player:, team: teams_to_use[team_index])
+      end
+    else
+      players.each_with_index do |player, index|
+        team = teams[index % teams.length]
+        PlayerTeam.create!(player:, team:)
+      end
     end
   end
 
@@ -90,31 +101,11 @@ class RoundTeamGenerator
     return if team_total.zero?
 
     player_total = players.size
-    min = championship.min_players_per_team
     max = championship.max_players_per_team
-
-    if min.to_i.positive? && player_total >= min && player_total < min * team_total
-      raise PlayerLimitError, "Not enough players to satisfy the minimum of #{min} per team"
-    end
 
     if max.to_i.positive? && player_total > max * team_total
       raise PlayerLimitError, "Too many players (#{player_total}) for the maximum of #{max} per team"
     end
-  end
-
-  def adjust_team_count_for_min_limit(player_count)
-    championship = round&.championship
-    return unless championship.present?
-
-    min = championship.min_players_per_team
-    return unless min.to_i.positive?
-
-    max_supported_teams = (player_count.to_f / min).floor
-    baseline = player_count.positive? ? 1 : 0
-    limit = [max_supported_teams, baseline].max
-    return if limit.zero?
-
-    @team_count = [team_count, limit].min
   end
 
   def unique_team_name(sequence, existing_names)
@@ -126,5 +117,3 @@ class RoundTeamGenerator
     candidate
   end
 end
-
-
