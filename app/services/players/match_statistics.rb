@@ -29,7 +29,7 @@ module Players
     def matches_for_team
       return 0 unless player.teams.exists?(team.id)
 
-      team.matches.where(round: round).count
+      Teams::MatchesQuery.call(team: team).where(round: round).count
     end
   end
 end
