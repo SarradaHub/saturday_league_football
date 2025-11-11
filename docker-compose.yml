@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     command: >
       /bin/bash -lc
-      "bundle exec rails db:setup &&
+      "bundle exec rails db:create db:migrate db:seed &&
        bundle exec rails server -b 0.0.0.0"
     volumes:
       - .:/app
