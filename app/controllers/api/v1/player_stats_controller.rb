@@ -6,18 +6,18 @@ module Api
       before_action :set_player_stat, only: %i[show update destroy]
 
       def index
-        @player_stats = PlayerStat.all
-        render json: @player_stats
+        player_stats = PlayerStats::CollectionQuery.call
+        render json: serialize(player_stats)
       end
 
       def show
-        render json: @player_stat
+        render json: PlayerStatSerializer.new(@player_stat).as_json
       end
 
       def create
         @player_stat = PlayerStat.new(player_stat_params)
         if @player_stat.save
-          render json: @player_stat, status: :created
+          render json: PlayerStatSerializer.new(@player_stat).as_json, status: :created
         else
           render json: { errors: @player_stat.errors.full_messages }, status: :unprocessable_entity
         end
@@ -25,7 +25,7 @@ module Api
 
       def update
         if @player_stat.update(player_stat_params)
-          render json: @player_stat
+          render json: PlayerStatSerializer.new(@player_stat).as_json
         else
           render json: { errors: @player_stat.errors.full_messages }, status: :unprocessable_entity
         end
@@ -38,22 +38,19 @@ module Api
 
       # Get player stats by match ID
       def by_match
-        match_id = params[:match_id]
-        @player_stats = PlayerStat.where(match_id: match_id).includes(:player, :team)
-        render json: @player_stats
+        player_stats = PlayerStats::CollectionQuery.call(
+          relation: PlayerStat.where(match_id: params[:match_id])
+        )
+        render json: serialize(player_stats)
       end
 
       # Bulk create/update player stats for a match
       def bulk_update
-        match_id = params[:match_id]
-        player_stats_params = params[:player_stats]
-
-        ActiveRecord::Base.transaction do
-          delete_existing_stats(match_id)
-          create_new_stats(player_stats_params, match_id)
-        end
-
-        render_updated_stats(match_id)
+        stats = PlayerStats::BulkUpsert.call(
+          match_id: params[:match_id],
+          payload: params[:player_stats]
+        )
+        render json: serialize(stats)
       rescue ActiveRecord::RecordInvalid => e
         render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
       end
@@ -69,31 +66,8 @@ module Api
                                             :match_id)
       end
 
-      def delete_existing_stats(match_id)
-        PlayerStat.where(match_id: match_id).destroy_all
-      end
-
-      def create_new_stats(player_stats_params, match_id)
-        player_stats_params.each do |stat_params|
-          PlayerStat.create!(build_stat_attributes(stat_params, match_id))
-        end
-      end
-
-      def build_stat_attributes(stat_params, match_id)
-        {
-          goals: stat_params[:goals],
-          own_goals: stat_params[:own_goals],
-          assists: stat_params[:assists],
-          was_goalkeeper: stat_params[:was_goalkeeper],
-          player_id: stat_params[:player_id],
-          team_id: stat_params[:team_id],
-          match_id: match_id
-        }
-      end
-
-      def render_updated_stats(match_id)
-        @player_stats = PlayerStat.where(match_id: match_id).includes(:player, :team)
-        render json: @player_stats
+      def serialize(collection)
+        Array(collection).map { |stat| PlayerStatSerializer.new(stat).as_json }
       end
     end
   end

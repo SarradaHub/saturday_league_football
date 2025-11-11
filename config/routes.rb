@@ -30,7 +30,7 @@ Rails.application.routes.draw do
         post 'match/:match_id/bulk', action: :bulk_update, on: :collection
       end
 
-      match '*any', via: [:options], to: -> (_) { [204, { 'Content-Type' => 'text/plain' }, []] }
+      match '*any', via: :options, to: ->(_) { [204, { 'Content-Type' => 'text/plain' }, []] }
     end
   end
 end

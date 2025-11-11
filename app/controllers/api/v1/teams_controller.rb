@@ -3,17 +3,19 @@
 module Api
   module V1
     class TeamsController < Api::V1::ApplicationController
-      before_action :set_team, only: %i[show update destroy]
+      before_action :set_team, only: %i[update destroy]
       def index
-        @teams = Team.all
+        @teams = Teams::CollectionQuery.new.call
       end
 
-      def show; end
+      def show
+        @team = Teams::FindQuery.new(id: params[:id]).call
+      end
 
       def create
         @team = Team.new(team_params)
         if @team.save
-          render json: @team, status: :created
+          render json: TeamPresenter.new(@team).as_json, status: :created
         else
           render json: @team.errors, status: :unprocessable_entity
         end
@@ -21,7 +23,7 @@ module Api
 
       def update
         if @team.update(team_params)
-          render json: @team
+          render json: TeamPresenter.new(@team).as_json
         else
           render json: @team.errors, status: :unprocessable_entity
         end
@@ -29,6 +31,7 @@ module Api
 
       def destroy
         @team.destroy
+        head :no_content
       end
 
       private

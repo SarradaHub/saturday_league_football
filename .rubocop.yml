@@ -1,28 +1,40 @@
-inherit_from:
-  - .rubocop_todo.yml
+inherit_gem:
+  rubocop-rails-omakase: rubocop.yml
+
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+  - rubocop-capybara
+  - rubocop-factory_bot
 
 AllCops:
   NewCops: enable
   SuggestExtensions: false
-  Exclude:
-    - _site/**/*
-    - node_modules/**/*
-    - vendor/**/*
-    - bin/bundle
-    - config/*
-    - db/**/*
+  TargetRubyVersion: 3.3
 
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
 
-Lint/ShadowingOuterLocalVariable:
-  Exclude:
-    - spec/rails_helper.rb
-    - spec/spec_helper.rb
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
 
-Style/Documentation:
-  Exclude:
-    - app/controllers/application_controller.rb
-    - app/helpers/application_helper.rb
-    - app/mailers/application_mailer.rb
-    - app/models/application_record.rb
-    - test/application_system_test_case.rb
-    - test/test_helper.rb
+Layout/TrailingEmptyLines:
+  EnforcedStyle: final_newline
+
+FactoryBot/SyntaxMethods:
+  Enabled: false
+
+RSpec/ImplicitExpect:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Max: 3
+
+RSpec/MultipleMemoizedHelpers:
+  Max: 7
+
+RSpec/IndexedLet:
+  Enabled: false
+
+Layout/SpaceInsideArrayLiteralBrackets:
+  EnforcedStyle: no_space

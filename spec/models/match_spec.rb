@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Match, type: :model do
-  subject { FactoryBot.create :match, :with_round, :with_team_1, :with_team_2, :with_winning_team }
+  subject { FactoryBot.create(:match, :with_round, :with_team_1, :with_team_2, :with_winning_team) }
 
   it { should belong_to :round }
   it { should belong_to :team_1 }
