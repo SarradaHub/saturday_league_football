@@ -27,6 +27,13 @@ module SaturdayLeagueFootball
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+    domain_subdirectories = %w[services presenters queries serializers policies].map do |folder|
+      Rails.root.join('app', folder).to_s
+    end
+
+    config.autoload_paths += domain_subdirectories
+    config.eager_load_paths += domain_subdirectories
+
     config.generators do |g|
       g.test_framework :rspec,
                        request_specs: false,

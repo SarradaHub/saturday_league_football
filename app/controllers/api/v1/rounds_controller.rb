@@ -3,17 +3,19 @@
 module Api
   module V1
     class RoundsController < Api::V1::ApplicationController
-      before_action :set_round, only: %i[show update destroy]
+      before_action :set_round, only: %i[update destroy]
       def index
-        @rounds = Round.includes(:players).order(round_date: :desc).all
+        @rounds = Rounds::CollectionQuery.new.call
       end
 
-      def show; end
+      def show
+        @round = Rounds::FindQuery.new(id: params[:id]).call
+      end
 
       def create
         @round = Round.new(round_params)
         if @round.save
-          render json: @round, status: :created
+          render json: RoundPresenter.new(@round).as_json, status: :created
         else
           render json: @round.errors, status: :unprocessable_entity
         end
@@ -21,7 +23,7 @@ module Api
 
       def update
         if @round.update(round_params)
-          render json: @round
+          render json: RoundPresenter.new(@round).as_json
         else
           render json: @round.errors, status: :unprocessable_entity
         end
@@ -29,6 +31,7 @@ module Api
 
       def destroy
         @round.destroy
+        head :no_content
       end
 
       private

@@ -19,15 +19,6 @@ class Championship < ApplicationRecord
       .references(:players)
       .merge(Player.distinct)
   }
-
-  def round_total
-    rounds.count
-  end
-
-  def total_players
-    players.distinct.count
-  end
-
   private
 
   def max_players_not_less_than_min

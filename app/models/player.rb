@@ -17,39 +17,4 @@ class Player < ApplicationRecord
       .where(rounds: { championship_id: championship_id })
       .distinct
   }
-
-  def total_matches
-    team_ids = teams.pluck(:id)
-    return 0 if team_ids.empty?
-
-    Match.where(team_1_id: team_ids).or(Match.where(team_2_id: team_ids)).distinct.count
-  end
-
-  def total_goals
-    player_stats.sum(:goals)
-  end
-
-  def total_assists
-    player_stats.sum(:assists)
-  end
-
-  def total_own_goals
-    player_stats.sum(:own_goals)
-  end
-
-  def total_matches_for_a_team(team, round)
-    teams.find(team).matches.where(round: round).count
-  end
-
-  def goals_in_match(match)
-    player_stats.where(match: match).sum(:goals)
-  end
-
-  def assists_in_match(match)
-    player_stats.where(match: match).sum(:assists)
-  end
-
-  def own_goals_in_match(match)
-    player_stats.where(match: match).sum(:own_goals)
-  end
 end

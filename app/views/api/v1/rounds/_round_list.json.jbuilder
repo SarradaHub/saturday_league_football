@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-json.id round.id
-json.name round.name
-json.round_date round.round_date
-json.championship_id round.championship.id
-json.created_at round.created_at
-json.updated_at round.updated_at
+round_presenter = RoundPresenter.new(round)
+
+json.extract! round_presenter, :id, :name, :round_date, :championship_id, :created_at, :updated_at

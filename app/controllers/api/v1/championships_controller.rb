@@ -3,17 +3,19 @@
 module Api
   module V1
     class ChampionshipsController < Api::V1::ApplicationController
-      before_action :set_championship, only: %i[show update destroy]
+      before_action :set_championship, only: %i[update destroy]
       def index
-        @championships = Championship.includes(rounds: :players).order(updated_at: :desc).all
+        @championships = Championships::CollectionQuery.new.call
       end
 
-      def show; end
+      def show
+        @championship = Championships::FindQuery.new(id: params[:id]).call
+      end
 
       def create
         @championship = Championship.new(championship_params)
         if @championship.save
-          render json: @championship, status: :created
+          render json: ChampionshipPresenter.new(@championship).as_json, status: :created
         else
           render json: @championship.errors, status: :unprocessable_entity
         end
@@ -21,7 +23,7 @@ module Api
 
       def update
         if @championship.update(championship_params)
-          render json: @championship
+          render json: ChampionshipPresenter.new(@championship).as_json
         else
           render json: @championship.errors, status: :unprocessable_entity
         end
@@ -29,6 +31,7 @@ module Api
 
       def destroy
         @championship.destroy
+        head :no_content
       end
 
       private

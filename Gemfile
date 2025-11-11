@@ -12,7 +12,7 @@ gem 'pg', '~> 1.6'
 gem 'propshaft'
 gem 'puma', '>= 5.0'
 gem 'rack-cors'
-gem 'rails', '~> 8.0.2'
+gem 'rails', '~> 8.1.1'
 gem 'solid_cable'
 gem 'solid_cache'
 gem 'solid_queue'
@@ -50,6 +50,7 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem 'web-console'
+  gem 'bullet'
 end
 
 group :test do

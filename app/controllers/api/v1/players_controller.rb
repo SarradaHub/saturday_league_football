@@ -5,12 +5,7 @@ module Api
     class PlayersController < Api::V1::ApplicationController
       before_action :set_player, only: %i[show update destroy add_to_round add_to_team match_stats]
       def index
-        players = if params[:championship_id]
-                    Player.in_championship(params[:championship_id])
-                  else
-                    Player.all
-                  end
-        render json: players
+        @players = Players::CollectionQuery.new(championship_id: params[:championship_id]).call
       end
 
       def show; end
@@ -18,43 +13,34 @@ module Api
       def create
         @player = Player.new(player_params)
         if @player.save
-          render json: @player, status: :created
+          render json: PlayerPresenter.new(@player).as_json, status: :created
         else
           render json: @player.errors, status: :unprocessable_entity
         end
       end
 
       def add_to_round
-        round = Round.find(params[:round_id])
-
-        PlayerRound.find_or_create_by!(player: @player, round:)
-
-        @round = Round.includes(:players, teams: :players).find(round.id)
-
-        render 'api/v1/rounds/show', status: :ok
+        player = Players::AddToRound.call(player: @player, round_id: params[:round_id])
+        render json: PlayerPresenter.new(player).as_json
       end
 
       def add_to_team
-        team = Team.find(params[:team_id])
-
-        player_team = PlayerTeam.find_or_create_by(player: @player, team:)
-        if player_team.persisted?
-          @team = Team.includes(:players, :matches).find(team.id)
-
-          render 'api/v1/teams/show', status: :ok
-        else
-          render json: { errors: player_team.errors.full_messages }, status: :unprocessable_entity
-        end
+        player = Players::AddToTeam.call(player: @player, team_id: params[:team_id])
+        render json: PlayerPresenter.new(player).as_json
       end
 
       def match_stats
-        find_related_entities
-        calculate_match_statistics
+        render json: Players::MatchStatistics.call(
+          player: @player,
+          team: find_team,
+          round: find_round,
+          match: find_match
+        )
       end
 
       def update
         if @player.update(player_params)
-          render json: @player
+          render json: PlayerPresenter.new(@player).as_json
         else
           render json: @player.errors, status: :unprocessable_entity
         end
@@ -62,12 +48,13 @@ module Api
 
       def destroy
         @player.destroy
+        head :no_content
       end
 
       private
 
       def set_player
-        @player = Player.find(params[:id])
+        @player = Player.includes(:player_stats, :rounds, :teams).find(params[:id])
       end
 
       def player_params
@@ -75,17 +62,16 @@ module Api
                                               player_rounds_attributes: %i[id round_id _destroy])
       end
 
-      def find_related_entities
-        @team = Team.find(params[:team_id])
-        @round = Round.find(params[:round_id])
-        @match = Match.find(params[:match_id])
+      def find_team
+        Team.find(params[:team_id])
       end
 
-      def calculate_match_statistics
-        @goals_in_match = @player.goals_in_match(@match.id)
-        @own_goals_in_match = @player.own_goals_in_match(@match.id)
-        @assists_in_match = @player.assists_in_match(@match.id)
-        @total_matches_for_a_team = @player.total_matches_for_a_team(@team.id, @round.id)
+      def find_round
+        Round.find(params[:round_id])
+      end
+
+      def find_match
+        Matches::FindQuery.new(id: params[:match_id]).call
       end
     end
   end

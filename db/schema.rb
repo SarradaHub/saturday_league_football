@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_11_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -22,7 +22,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
   end
 
   create_table "matches", force: :cascade do |t|
-    t.string "name"
+    t.string "name", null: false
     t.bigint "round_id"
     t.bigint "team_1_id"
     t.bigint "team_2_id"
@@ -41,6 +41,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
     t.bigint "round_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["player_id", "round_id"], name: "index_player_rounds_on_player_id_and_round_id", unique: true
     t.index ["player_id"], name: "index_player_rounds_on_player_id"
     t.index ["round_id"], name: "index_player_rounds_on_round_id"
   end
@@ -55,6 +56,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
     t.bigint "match_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["match_id", "player_id"], name: "index_player_stats_on_match_and_player"
+    t.index ["match_id", "team_id"], name: "index_player_stats_on_match_and_team"
     t.index ["match_id"], name: "index_player_stats_on_match_id"
     t.index ["player_id"], name: "index_player_stats_on_player_id"
     t.index ["team_id"], name: "index_player_stats_on_team_id"
@@ -65,18 +68,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
     t.bigint "team_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["player_id", "team_id"], name: "index_player_teams_on_player_id_and_team_id", unique: true
     t.index ["player_id"], name: "index_player_teams_on_player_id"
     t.index ["team_id"], name: "index_player_teams_on_team_id"
   end
 
   create_table "players", force: :cascade do |t|
-    t.string "name"
+    t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "rounds", force: :cascade do |t|
-    t.string "name"
+    t.string "name", null: false
     t.date "round_date"
     t.bigint "championship_id"
     t.datetime "created_at", null: false
@@ -85,7 +89,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_07_25_194044) do
   end
 
   create_table "teams", force: :cascade do |t|
-    t.string "name"
+    t.string "name", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "round_id"
