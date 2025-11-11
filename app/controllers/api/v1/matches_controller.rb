@@ -3,22 +3,19 @@
 module Api
   module V1
     class MatchesController < Api::V1::ApplicationController
-      before_action :set_match, only: %i[show update destroy]
+      before_action :set_match, only: %i[update destroy]
       def index
-        @matches = Match.all
+        @matches = Matches::CollectionQuery.new.call
       end
 
       def show
-        @match = Match.includes(
-          team_1: { players: :player_stats },
-          team_2: { players: :player_stats }
-        ).find(params[:id])
+        @match = Matches::FindQuery.new(id: params[:id]).call
       end
 
       def create
         @match = Match.new(match_params)
         if @match.save
-          render json: @match, status: :created
+          render json: MatchPresenter.new(@match).as_json, status: :created
         else
           render json: @match.errors, status: :unprocessable_entity
         end
@@ -26,7 +23,7 @@ module Api
 
       def update
         if @match.update(match_params)
-          render json: @match
+          render json: MatchPresenter.new(@match).as_json
         else
           render json: @match.errors, status: :unprocessable_entity
         end
@@ -34,6 +31,7 @@ module Api
 
       def destroy
         @match.destroy
+        head :no_content
       end
 
       private

@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Championship, type: :model do
-  subject { FactoryBot.create :championship }
+  subject { FactoryBot.create(:championship) }
 
   it { should validate_presence_of :name }
   it { should have_many :rounds }
