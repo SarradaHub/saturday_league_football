@@ -41,7 +41,7 @@ module Api
       end
 
       def championship_params
-        params.require(:championship).permit(:name, :description)
+        params.require(:championship).permit(:name, :description, :min_players_per_team, :max_players_per_team)
       end
     end
   end

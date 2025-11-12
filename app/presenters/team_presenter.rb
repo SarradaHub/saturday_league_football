@@ -20,7 +20,7 @@ class TeamPresenter < ApplicationPresenter
   end
 
   def players
-    resource.players.distinct
+    resource.player_teams.includes(:player).order(:created_at).map(&:player)
   end
 
   private
