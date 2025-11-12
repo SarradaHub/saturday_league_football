@@ -3,8 +3,6 @@
 require 'rails_helper'
 
 RSpec.describe RoundTeamGenerator do
-  subject(:call_service) { described_class.call(round) }
-
   let(:championship) { create(:championship, min_players_per_team: 2, max_players_per_team: 4) }
   let(:round) { create(:round, championship:) }
 
@@ -22,6 +20,10 @@ RSpec.describe RoundTeamGenerator do
         timestamp: Time.zone.now + (offset + index).minutes
       )
     end
+  end
+
+  def call_service
+    described_class.call(round)
   end
 
   describe '.call' do
@@ -57,10 +59,14 @@ RSpec.describe RoundTeamGenerator do
       end
 
       it 'includes the new player in the round teams' do
+        expect(PlayerRound.where(round:).count).to eq(4)
+
         call_service
-        round.reload
-        expect(round.teams.sum { |team| team.players.count }).to eq(4)
-        expect(round.teams.flat_map(&:players)).to include(extra_player)
+
+        player_teams = PlayerTeam.where(team_id: round.reload.teams.select(:id)).includes(:player)
+
+        expect(player_teams.size).to eq(4)
+        expect(player_teams.map(&:player)).to include(extra_player)
       end
     end
 
