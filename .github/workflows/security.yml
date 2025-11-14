@@ -1,0 +1,22 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  security:
+    uses: SarradaHub/platform/.github/workflows/security-scan.yaml@main
+    with:
+      node-version: '20'
+      working-directory: .
+      audit-level: moderate
+      fail-on-high: true
+      check-secrets: true
+      codeql: true
+      codeql-languages: ruby,javascript
+

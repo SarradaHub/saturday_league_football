@@ -1,0 +1,136 @@
+name: Coverage Badge
+
+on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: saturday_league_football_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.6'
+          bundler-cache: true
+
+      - name: Install extra packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Prepare database
+        run: bundle exec rails db:test:prepare
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saturday_league_football_test
+
+      - name: Run tests with coverage
+        run: bundle exec rspec --format progress
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/saturday_league_football_test
+          RAILS_ENV: test
+
+      - name: Generate coverage badge
+        run: |
+          mkdir -p badges
+          
+          # Extract coverage from SimpleCov if available
+          if [ -f "coverage/.resultset.json" ]; then
+            PERCENTAGE=$(ruby -rjson -e "
+              data = JSON.parse(File.read('coverage/.resultset.json'))
+              total = 0
+              covered = 0
+              data.each do |_, result|
+                result['coverage'].each do |_, lines|
+                  lines.each do |line|
+                    total += 1
+                    covered += 1 if line && line > 0
+                  end
+                end
+              end
+              puts total > 0 ? ((covered.to_f / total) * 100).round : 0
+            ")
+          else
+            PERCENTAGE=0
+          fi
+          
+          # Determine color
+          COLOR="red"
+          if [ "$PERCENTAGE" -ge 90 ]; then
+            COLOR="brightgreen"
+          elif [ "$PERCENTAGE" -ge 80 ]; then
+            COLOR="green"
+          elif [ "$PERCENTAGE" -ge 70 ]; then
+            COLOR="yellowgreen"
+          elif [ "$PERCENTAGE" -ge 60 ]; then
+            COLOR="yellow"
+          elif [ "$PERCENTAGE" -ge 50 ]; then
+            COLOR="orange"
+          fi
+          
+          # Generate SVG badge
+          cat > badges/coverage.svg << EOF
+          <svg xmlns="http://www.w3.org/2000/svg" width="99" height="20">
+            <linearGradient id="b" x2="0" y2="100%">
+              <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+              <stop offset="1" stop-opacity=".1"/>
+            </linearGradient>
+            <mask id="a">
+              <rect width="99" height="20" rx="3" fill="#fff"/>
+            </mask>
+            <g mask="url(#a)">
+              <path fill="#555" d="M0 0h61v20H0z"/>
+              <path fill="#$COLOR" d="M61 0h38v20H61z"/>
+              <path fill="url(#b)" d="M0 0h99v20H0z"/>
+            </g>
+            <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+              <text x="30.5" y="15" fill="#010101" fill-opacity=".3">coverage</text>
+              <text x="30.5" y="14">coverage</text>
+              <text x="80" y="15" fill="#010101" fill-opacity=".3">$PERCENTAGE%</text>
+              <text x="80" y="14">$PERCENTAGE%</text>
+            </g>
+          </svg>
+          EOF
+          
+          echo "Coverage: $PERCENTAGE%"
+
+      - name: Commit coverage badge
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          if [ -d "badges" ] && [ "$(ls -A badges)" ]; then
+            git add badges/
+            git commit -m "Update coverage badge [skip ci]" || exit 0
+            
+            if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+              git push
+            fi
+          fi
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 30
+
