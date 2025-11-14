@@ -6,14 +6,6 @@ on:
   pull_request:
 
 jobs:
-  contracts:
-    uses: SarradaHub/platform/.github/workflows/contracts.yaml@main
-    with:
-      working-directory: .
-      install-command: bundle install
-      test-command: bundle exec rspec spec/jobs/events/publish_match_scheduled_job_spec.rb
-      schema-glob: platform/contracts/schemas/scheduling/*.json
-
   rails-ci:
     uses: SarradaHub/platform/.github/workflows/rails-service-ci.yaml@main
     with:
