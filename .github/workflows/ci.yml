@@ -7,7 +7,7 @@ on:
 
 jobs:
   contracts:
-    uses: LMafra/SarradaHub/platform/ci/workflows/contracts.yaml@main
+    uses: SarradaHub/platform/.github/workflows/contracts.yaml@main
     with:
       working-directory: .
       install-command: bundle install
@@ -15,7 +15,7 @@ jobs:
       schema-glob: platform/contracts/schemas/scheduling/*.json
 
   rails-ci:
-    uses: LMafra/SarradaHub/platform/ci/workflows/rails-service-ci.yaml@main
+    uses: SarradaHub/platform/.github/workflows/rails-service-ci.yaml@main
     with:
       working-directory: .
       ruby-version: '3.3.6'
