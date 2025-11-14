@@ -22,7 +22,6 @@ jobs:
       run-brakeman: true
       run-importmap-audit: false
       run-rubycritic: false
-      postgres-image: postgres:16
       postgres-db: saturday_league_football_test
       rspec-command: bundle exec rspec
       extra-apt-packages: "postgresql-client"
