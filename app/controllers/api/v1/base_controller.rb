@@ -7,7 +7,7 @@ module Api
 
       # CSRF protection is not needed for API controllers
       # APIs typically use token-based authentication instead
-      respond_to :json
+      # respond_to is available via ActionController::MimeResponds included in ApplicationController
 
       private
 

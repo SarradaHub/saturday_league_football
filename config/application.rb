@@ -27,14 +27,14 @@ module SaturdayLeagueFootball
     #
     # config.time_zone = "Central Time (US & Canada)"
     # config.eager_load_paths << Rails.root.join("extras")
+    # Configure autoload paths for domain subdirectories
+    # Using to_a + array to create a new array and avoid frozen array issues in Rails 8.1
     domain_subdirectories = %w[services presenters queries serializers policies].map do |folder|
       Rails.root.join('app', folder).to_s
     end
 
-    domain_subdirectories.each do |path|
-      config.autoload_paths << path
-      config.eager_load_paths << path
-    end
+    config.autoload_paths = config.autoload_paths.to_a + domain_subdirectories
+    config.eager_load_paths = config.eager_load_paths.to_a + domain_subdirectories
 
     config.generators do |g|
       g.test_framework :rspec,
