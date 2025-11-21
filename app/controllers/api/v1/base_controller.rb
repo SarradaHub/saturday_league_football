@@ -5,7 +5,8 @@ module Api
     class BaseController < ApplicationController
       include IdentityAuthentication
 
-      protect_from_forgery with: :null_session
+      # CSRF protection is not needed for API controllers
+      # APIs typically use token-based authentication instead
       respond_to :json
 
       private
