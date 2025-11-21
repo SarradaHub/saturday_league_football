@@ -1,0 +1,52 @@
+# Test-specific docker-compose configuration
+# This extends docker-compose.yml with test-optimized settings
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.test.yml [command]
+
+services:
+  db:
+    environment:
+      POSTGRES_DB: saturday_league_football_test
+    # Use separate volume for test data (overrides development volume)
+    volumes:
+      - postgres_data_test:/var/lib/postgresql/data
+
+  app:
+    environment:
+      RAILS_ENV: test
+      RAILS_LOG_LEVEL: warn
+      DATABASE_URL: "postgresql://postgres:password@db:5432/saturday_league_football_test"
+      POSTGRES_HOST: db  # Use Docker service name, not localhost
+      POSTGRES_DB: saturday_league_football_test
+      PGDATABASE_TEST: saturday_league_football_test
+      # Test environment optimizations
+      RAILS_MAX_THREADS: 5
+      WEB_CONCURRENCY: 1
+      # Disable unnecessary features for tests
+      RAILS_SERVE_STATIC_FILES: "false"
+    # Don't expose ports for test environment (tests don't need web access)
+    ports: []
+    # Remove interactive mode for tests (non-interactive)
+    stdin_open: false
+    tty: false
+    # Override command to not start server (tests will run via script)
+    command: /bin/bash -lc "tail -f /dev/null"
+    # Override volumes for test environment
+    volumes:
+      # Mount source code for tests (same as dev, but with test env)
+      - .:/app:cached
+      # Exclude directories that should be container-specific
+      - /app/tmp
+      - /app/log
+      - /app/node_modules
+      - /app/public/assets
+      - /app/public/packs
+      # Bundle cache for faster gem installs (shared with dev)
+      - bundle_cache:/usr/local/bundle
+      # Test storage (separate from development to avoid conflicts)
+      - rails_storage_test:/app/storage
+
+volumes:
+  # Test-specific volumes (separate from development)
+  postgres_data_test:
+  rails_storage_test:
+
