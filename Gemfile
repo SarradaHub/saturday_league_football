@@ -21,6 +21,12 @@ gem 'thruster', require: false
 gem 'turbo-rails'
 gem 'tzinfo-data', platforms: %i[windows jruby]
 
+# Microservices integration
+gem 'diplomat' # Consul client
+gem 'circuitbox' # Circuit breaker pattern
+gem 'faraday' # HTTP client
+gem 'faraday-retry' # HTTP retry logic
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem 'debug', platforms: %i[mri windows], require: 'debug/prelude'
