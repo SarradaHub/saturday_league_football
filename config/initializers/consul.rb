@@ -1,5 +1,5 @@
 # Consul service registration
-if Rails.env.production? || ENV["CONSUL_ENABLED"] == "true"
+if Rails.env.production? || ENV['CONSUL_ENABLED'] == 'true'
   Rails.application.config.after_initialize do
     begin
       ConsulService.register_service
@@ -13,4 +13,3 @@ if Rails.env.production? || ENV["CONSUL_ENABLED"] == "true"
     ConsulService.deregister_service
   end
 end
-

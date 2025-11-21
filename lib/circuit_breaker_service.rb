@@ -1,13 +1,13 @@
-require "circuitbox"
-require "faraday"
-require "faraday/retry"
+require 'circuitbox'
+require 'faraday'
+require 'faraday/retry'
 
 module CircuitBreakerService
   class << self
     def create_client(service_name, base_url = nil)
       # Get service URL from Consul if not provided
       url = base_url || ConsulService.discover_service(service_name) || base_url
-      
+
       return nil unless url
 
       circuit = Circuitbox.circuit(service_name.to_sym, {
@@ -33,16 +33,16 @@ module CircuitBreakerService
       end
     end
 
-    def call_service(service_name, method: :get, path: "", params: {}, headers: {})
+    def call_service(service_name, method: :get, path: '', params: {}, headers: {})
       client = create_client(service_name)
-      return { success: false, error: "Service unavailable" } unless client
+      return { success: false, error: 'Service unavailable' } unless client
 
       begin
         response = client.public_send(method, path, params, headers)
         { success: true, data: JSON.parse(response.body), status: response.status }
       rescue Circuitbox::OpenCircuitError => e
         Rails.logger.error "Circuit breaker open for #{service_name}: #{e.message}"
-        { success: false, error: "Service temporarily unavailable", circuit_open: true }
+        { success: false, error: 'Service temporarily unavailable', circuit_open: true }
       rescue => e
         Rails.logger.error "Error calling #{service_name}: #{e.message}"
         { success: false, error: e.message }
@@ -50,4 +50,3 @@ module CircuitBreakerService
     end
   end
 end
-

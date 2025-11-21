@@ -2,7 +2,7 @@
 
 Rails.application.routes.draw do
   get 'up' => 'rails/health#show', as: :rails_health_check
-  
+
   # Standardized health check endpoints for microservices
   get 'health', to: 'health#health'
   get 'ready', to: 'health#ready'

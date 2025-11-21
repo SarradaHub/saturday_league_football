@@ -1,13 +1,13 @@
-require "diplomat"
+require 'diplomat'
 
 module ConsulService
   class << self
     def register_service
       return unless consul_enabled?
 
-      service_name = "saturday-league-api"
-      service_port = ENV.fetch("PORT", "3000").to_i
-      consul_url = ENV.fetch("CONSUL_URL", "http://localhost:8500")
+      service_name = 'saturday-league-api'
+      service_port = ENV.fetch('PORT', '3000').to_i
+      consul_url = ENV.fetch('CONSUL_URL', 'http://localhost:8500')
 
       Diplomat.configure do |config|
         config.url = consul_url
@@ -16,14 +16,14 @@ module ConsulService
       service_definition = {
         ID: service_name,
         Name: service_name,
-        Tags: ["rails", "api", "v1"],
+        Tags: ['rails', 'api', 'v1'],
         Address: service_address,
         Port: service_port,
         Check: {
           HTTP: "http://#{service_address}:#{service_port}/health",
-          Interval: "10s",
-          Timeout: "5s",
-          DeregisterCriticalServiceAfter: "30s"
+          Interval: '10s',
+          Timeout: '5s',
+          DeregisterCriticalServiceAfter: '30s'
         }
       }
 
@@ -36,8 +36,8 @@ module ConsulService
     def deregister_service
       return unless consul_enabled?
 
-      Diplomat::Service.deregister("saturday-league-api")
-      Rails.logger.info "Deregistered saturday-league-api from Consul"
+      Diplomat::Service.deregister('saturday-league-api')
+      Rails.logger.info 'Deregistered saturday-league-api from Consul'
     rescue => e
       Rails.logger.error "Failed to deregister from Consul: #{e.message}"
     end
@@ -49,7 +49,7 @@ module ConsulService
       return nil if services.empty?
 
       # Return first healthy service
-      service = services.find { |s| s[:Status] == "passing" } || services.first
+      service = services.find { |s| s[:Status] == 'passing' } || services.first
       "http://#{service[:Address]}:#{service[:Port]}"
     rescue => e
       Rails.logger.error "Failed to discover service #{service_name}: #{e.message}"
@@ -59,12 +59,11 @@ module ConsulService
     private
 
     def consul_enabled?
-      ENV.fetch("CONSUL_ENABLED", "false") == "true"
+      ENV.fetch('CONSUL_ENABLED', 'false') == 'true'
     end
 
     def service_address
-      ENV.fetch("SERVICE_ADDRESS", "localhost")
+      ENV.fetch('SERVICE_ADDRESS', 'localhost')
     end
   end
 end
-

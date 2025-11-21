@@ -12,7 +12,7 @@ module IdentityAuthentication
     return render_unauthorized unless token
 
     result = IdentityServiceClient.validate_token(token)
-    
+
     if result[:valid]
       @current_user = result[:user]
     else
@@ -21,18 +21,18 @@ module IdentityAuthentication
   end
 
   def extract_token_from_header
-    auth_header = request.headers["Authorization"]
+    auth_header = request.headers['Authorization']
     return nil unless auth_header
 
-    parts = auth_header.split(" ")
-    parts[1] if parts.length == 2 && parts[0] == "Bearer"
+    parts = auth_header.split(' ')
+    parts[1] if parts.length == 2 && parts[0] == 'Bearer'
   end
 
   def render_unauthorized
     render json: {
       success: false,
-      message: "Unauthorized",
-      code: "UNAUTHORIZED"
+      message: 'Unauthorized',
+      code: 'UNAUTHORIZED'
     }, status: :unauthorized
   end
 
@@ -44,4 +44,3 @@ module IdentityAuthentication
     @current_user
   end
 end
-
