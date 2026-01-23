@@ -6,6 +6,10 @@ if [ -z "${LD_PRELOAD+x}" ]; then
     export LD_PRELOAD
 fi
 
+# Always remove stale PID file to prevent "server already running" errors
+# This is safe because if we're not starting a server, the file won't exist anyway
+rm -f /app/tmp/pids/server.pid
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare

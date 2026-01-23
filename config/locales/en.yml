@@ -29,3 +29,11 @@
 
 en:
   hello: "Hello world"
+  activerecord:
+    errors:
+      models:
+        player_stat:
+          attributes:
+            assists:
+              assists_require_goals: "só pode existir se houver gol (assistências ≤ gols do time)"
+              no_assists_on_own_goals: "gol contra não tem assistência"

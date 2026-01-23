@@ -5,7 +5,24 @@ module Api
     class PlayersController < Api::V1::ApplicationController
       before_action :set_player, only: %i[show update destroy add_to_round add_to_team match_stats]
       def index
-        @players = Players::CollectionQuery.new(championship_id: params[:championship_id]).call
+        includes_list = parse_includes
+        pagination = paginate_params
+        # Get base relation for count
+        base_query = Players::CollectionQuery.new(
+          championship_id: params[:championship_id],
+          includes: includes_list,
+          page: nil,
+          per_page: nil
+        )
+        base_relation = base_query.call
+        # Get paginated collection
+        collection = Players::CollectionQuery.new(
+          championship_id: params[:championship_id],
+          includes: includes_list,
+          page: pagination[:page],
+          per_page: pagination[:per_page]
+        ).call
+        render_collection(collection, presenter_class: PlayerPresenter, base_relation: base_relation)
       end
 
       def show; end
@@ -15,7 +32,7 @@ module Api
         if @player.save
           render json: PlayerPresenter.new(@player).as_json, status: :created
         else
-          render json: @player.errors, status: :unprocessable_entity
+          render json: @player.errors, status: :unprocessable_content
         end
       end
 
@@ -42,7 +59,7 @@ module Api
         if @player.update(player_params)
           render json: PlayerPresenter.new(@player).as_json
         else
-          render json: @player.errors, status: :unprocessable_entity
+          render json: @player.errors, status: :unprocessable_content
         end
       end
 

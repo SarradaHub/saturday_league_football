@@ -5,11 +5,26 @@ module Api
     class RoundsController < Api::V1::ApplicationController
       before_action :set_round, only: %i[update destroy]
       def index
-        @rounds = Rounds::CollectionQuery.new.call
+        includes_list = parse_includes
+        pagination = paginate_params
+        # Get base relation for count
+        base_query = Rounds::CollectionQuery.new(includes: includes_list, page: nil, per_page: nil)
+        base_relation = base_query.call
+        # Get paginated collection
+        collection = Rounds::CollectionQuery.new(
+          includes: includes_list,
+          page: pagination[:page],
+          per_page: pagination[:per_page]
+        ).call
+        render_collection(collection, presenter_class: RoundPresenter, base_relation: base_relation)
       end
 
       def show
         @round = Rounds::FindQuery.new(id: params[:id]).call
+        round_json = RoundPresenter.new(@round).as_json
+        allowed_fields = parse_fields
+        round_json = filter_fields(round_json, allowed_fields) if allowed_fields.present?
+        render json: round_json
       end
 
       def create
@@ -17,7 +32,7 @@ module Api
         if @round.save
           render json: RoundPresenter.new(@round).as_json, status: :created
         else
-          render json: @round.errors, status: :unprocessable_entity
+          render json: @round.errors, status: :unprocessable_content
         end
       end
 
@@ -25,13 +40,18 @@ module Api
         if @round.update(round_params)
           render json: RoundPresenter.new(@round).as_json
         else
-          render json: @round.errors, status: :unprocessable_entity
+          render json: @round.errors, status: :unprocessable_content
         end
       end
 
       def destroy
         @round.destroy
         head :no_content
+      end
+
+      def statistics
+        stats = RoundStatistics.call(round_id: params[:id])
+        render json: stats
       end
 
       private

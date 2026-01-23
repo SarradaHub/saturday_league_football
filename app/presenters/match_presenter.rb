@@ -12,6 +12,14 @@ class MatchPresenter < ApplicationPresenter
       draw: draw,
       team_1_players: team_players(resource.team_1),
       team_2_players: team_players(resource.team_2),
+      team_1_goals: team_1_goals,
+      team_2_goals: team_2_goals,
+      team_1_goals_scorer: team_1_goals_scorer_array,
+      team_1_assists: team_1_assists_array,
+      team_1_own_goals_scorer: team_1_own_goals_scorer_array,
+      team_2_goals_scorer: team_2_goals_scorer_array,
+      team_2_assists: team_2_assists_array,
+      team_2_own_goals_scorer: team_2_own_goals_scorer_array,
       statistics: statistics_payload,
       created_at: created_at,
       updated_at: updated_at
@@ -90,5 +98,53 @@ class MatchPresenter < ApplicationPresenter
     return [] if team.blank?
 
     team.players.map { |player| PlayerSerializer.new(player).as_json }
+  end
+
+  # Convert hash of player names to counts into array of Player objects
+  def hash_to_player_array(team, hash)
+    return [] if hash.blank? || !hash.is_a?(Hash)
+
+    result = []
+    hash.each do |player_name, count|
+      player = find_player_by_name(team, player_name)
+      next unless player
+
+      count.to_i.times do
+        result << PlayerSerializer.new(player).as_json
+      end
+    end
+    result
+  end
+
+  def find_player_by_name(team, name)
+    return nil if team.blank? || name.blank?
+
+    team.players.find { |p| p.name == name.to_s }
+  end
+
+  def team_1_goals_scorer_array
+    hash_to_player_array(resource.team_1, team_1_goals_scorer)
+  end
+
+  def team_1_assists_array
+    hash_to_player_array(resource.team_1, team_1_assists)
+  end
+
+  def team_1_own_goals_scorer_array
+    # Own goals from team_2 count for team_1
+    hash_to_player_array(resource.team_2, statistics.breakdown_for(resource.team_2, resource.team_1)[:own_goals])
+  end
+
+  def team_2_goals_scorer_array
+    hash_to_player_array(resource.team_2, team_2_goals_scorer)
+  end
+
+  def team_2_assists_array
+    hash_to_player_array(resource.team_2, team_2_assists)
+  end
+
+  def team_2_own_goals_scorer_array
+    # Own goals from team_1 count for team_2
+    hash_to_player_array(resource.team_1, statistics.breakdown_for(resource.team_1, resource.team_2)[:own_goals])
   end
 end

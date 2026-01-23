@@ -2,18 +2,55 @@
 
 module Matches
   class CollectionQuery < ApplicationQuery
-    def initialize(relation: Match.all)
+    def initialize(relation: Match.all, includes: [], page: nil, per_page: nil)
       @relation = relation
+      @includes = includes
+      @page = page
+      @per_page = per_page
     end
 
     def call
-      relation
-        .includes(:round, :team_1, :team_2, :winning_team, team_1: :players, team_2: :players)
-        .order(created_at: :desc)
+      scope = relation.order(created_at: :desc)
+
+      # Apply includes only if specified
+      if includes.any?
+        scope = apply_includes(scope, includes)
+      end
+
+      # Apply pagination if specified
+      if page && per_page
+        offset = (page - 1) * per_page
+        scope = scope.limit(per_page).offset(offset)
+      end
+
+      scope
     end
 
     private
 
-    attr_reader :relation
+    attr_reader :relation, :includes, :page, :per_page
+
+    def apply_includes(scope, includes_list)
+      includes_hash = {}
+      includes_list.each do |include_str|
+        parts = include_str.split('.').map(&:to_sym)
+        current = includes_hash
+
+        parts.each_with_index do |part, index|
+          if index == parts.length - 1
+            current[part] = {}
+          else
+            current[part] ||= {}
+            current = current[part]
+          end
+        end
+      end
+
+      if includes_hash.any?
+        scope.includes(includes_hash)
+      else
+        scope.includes(includes_list.map(&:to_sym))
+      end
+    end
   end
 end

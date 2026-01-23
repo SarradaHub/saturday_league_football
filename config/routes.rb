@@ -10,8 +10,16 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :championships, defaults: { format: :json }
-      resources :rounds, defaults: { format: :json }
-      resources :matches, defaults: { format: :json }
+      resources :rounds, defaults: { format: :json } do
+        member do
+          get :statistics
+        end
+      end
+      resources :matches, defaults: { format: :json } do
+        member do
+          post :finalize
+        end
+      end
       resources :teams, defaults: { format: :json }
       resources :players, defaults: { format: :json } do
         post 'add_to_round', on: :member

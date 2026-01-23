@@ -1,0 +1,204 @@
+# frozen_string_literal: true
+
+require 'rails_helper'
+
+RSpec.describe ChampionshipPresenter do
+  subject(:presenter) { described_class.new(championship) }
+
+  let(:championship) { FactoryBot.create(:championship) }
+
+  describe 'delegates' do
+    it 'delegates id to resource' do
+      expect(presenter.id).to eq(championship.id)
+    end
+
+    it 'delegates name to resource' do
+      expect(presenter.name).to eq(championship.name)
+    end
+
+    it 'delegates description to resource' do
+      expect(presenter.description).to eq(championship.description)
+    end
+
+    it 'delegates created_at to resource' do
+      expect(presenter.created_at).to eq(championship.created_at)
+    end
+
+    it 'delegates updated_at to resource' do
+      expect(presenter.updated_at).to eq(championship.updated_at)
+    end
+  end
+
+  describe '#as_json' do
+    let(:round1) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 1)) }
+    let(:round2) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 15)) }
+    let(:player1) { FactoryBot.create(:player) }
+    let(:player2) { FactoryBot.create(:player) }
+
+    before do
+      FactoryBot.create(:player_round, player: player1, round: round1)
+      FactoryBot.create(:player_round, player: player2, round: round2)
+    end
+
+    it 'returns complete json structure' do
+      json = presenter.as_json
+
+      expect(json).to be_a(Hash)
+      expect(json[:id]).to eq(championship.id)
+      expect(json[:name]).to eq(championship.name)
+      expect(json[:description]).to eq(championship.description)
+      expect(json[:total_players]).to eq(2)
+      expect(json[:round_total]).to eq(2)
+      expect(json[:created_at]).to eq(championship.created_at)
+      expect(json[:updated_at]).to eq(championship.updated_at)
+      expect(json[:rounds]).to be_an(Array)
+      expect(json[:players]).to be_an(Array)
+    end
+
+    it 'includes serialized rounds' do
+      json = presenter.as_json
+
+      expect(json[:rounds].length).to eq(2)
+      expect(json[:rounds].first).to be_a(Hash)
+      expect(json[:rounds].first[:id]).to be_in([round1.id, round2.id])
+    end
+
+    it 'includes serialized players' do
+      json = presenter.as_json
+
+      expect(json[:players].length).to eq(2)
+      expect(json[:players].first).to be_a(Hash)
+      expect(json[:players].map { |p| p[:id] }).to contain_exactly(player1.id, player2.id)
+    end
+  end
+
+  describe '#round_total' do
+    context 'with rounds' do
+      before do
+        FactoryBot.create(:round, championship: championship)
+        FactoryBot.create(:round, championship: championship)
+        FactoryBot.create(:round, championship: championship)
+      end
+
+      it 'returns the count of rounds' do
+        expect(presenter.round_total).to eq(3)
+      end
+    end
+
+    context 'without rounds' do
+      it 'returns zero' do
+        expect(presenter.round_total).to eq(0)
+      end
+    end
+  end
+
+  describe '#total_players' do
+    context 'with players' do
+      let(:round1) { FactoryBot.create(:round, championship: championship) }
+      let(:round2) { FactoryBot.create(:round, championship: championship) }
+      let(:player1) { FactoryBot.create(:player) }
+      let(:player2) { FactoryBot.create(:player) }
+      let(:player3) { FactoryBot.create(:player) }
+
+      before do
+        FactoryBot.create(:player_round, player: player1, round: round1)
+        FactoryBot.create(:player_round, player: player2, round: round1)
+        FactoryBot.create(:player_round, player: player3, round: round2)
+        # Add player1 to round2 as well (should still count as 1 distinct player)
+        FactoryBot.create(:player_round, player: player1, round: round2)
+      end
+
+      it 'returns distinct count of players' do
+        expect(presenter.total_players).to eq(3)
+      end
+
+      it 'memoizes the result' do
+        first_call = presenter.total_players
+        second_call = presenter.total_players
+        expect(first_call).to eq(second_call)
+        expect(presenter.instance_variable_get(:@total_players)).to eq(3)
+      end
+    end
+
+    context 'without players' do
+      it 'returns zero' do
+        expect(presenter.total_players).to eq(0)
+      end
+    end
+  end
+
+  describe '#rounds' do
+    let!(:round1) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 15)) }
+    let!(:round2) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 1)) }
+    let!(:round3) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 10)) }
+
+    it 'returns rounds ordered by round_date ascending' do
+      rounds = presenter.rounds.to_a
+      expect(rounds.map(&:round_date)).to eq([
+        Date.new(2025, 1, 1),
+        Date.new(2025, 1, 10),
+        Date.new(2025, 1, 15)
+      ])
+    end
+  end
+
+  describe '#players' do
+    let(:round1) { FactoryBot.create(:round, championship: championship) }
+    let(:round2) { FactoryBot.create(:round, championship: championship) }
+    let(:player1) { FactoryBot.create(:player) }
+    let(:player2) { FactoryBot.create(:player) }
+
+    before do
+      FactoryBot.create(:player_round, player: player1, round: round1)
+      FactoryBot.create(:player_round, player: player2, round: round2)
+      # Add player1 to round2 as well
+      FactoryBot.create(:player_round, player: player1, round: round2)
+    end
+
+    it 'returns distinct players' do
+      players = presenter.players.to_a
+      expect(players.length).to eq(2)
+      expect(players.map(&:id)).to contain_exactly(player1.id, player2.id)
+    end
+  end
+
+  describe '#serialized_rounds' do
+    let!(:round) { FactoryBot.create(:round, championship: championship) }
+
+    it 'serializes rounds using RoundSerializer' do
+      serialized = presenter.send(:serialized_rounds)
+      expect(serialized).to be_an(Array)
+      expect(serialized.length).to eq(1)
+      expect(serialized.first).to be_a(Hash)
+      expect(serialized.first[:id]).to eq(round.id)
+      expect(serialized.first[:name]).to eq(round.name)
+    end
+  end
+
+  describe '#serialized_players' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:player) { FactoryBot.create(:player) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+    end
+
+    it 'serializes players using PlayerPresenter' do
+      serialized = presenter.send(:serialized_players)
+      expect(serialized).to be_an(Array)
+      expect(serialized.first).to be_a(Hash)
+      expect(serialized.first[:id]).to eq(player.id)
+      expect(serialized.first[:name]).to eq(player.name)
+    end
+  end
+
+  context 'with empty championship' do
+    it 'handles championship without rounds' do
+      json = presenter.as_json
+      expect(json[:round_total]).to eq(0)
+      expect(json[:total_players]).to eq(0)
+      expect(json[:rounds]).to eq([])
+      expect(json[:players]).to eq([])
+    end
+  end
+end

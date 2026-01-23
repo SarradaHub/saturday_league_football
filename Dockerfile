@@ -36,8 +36,14 @@ RUN bundle install --jobs $(nproc) --retry 3 && \
 # Copy the rest of the application code
 COPY . .
 
+# Make entrypoint script executable
+RUN chmod +x /app/bin/docker-entrypoint
+
 # Expose port 3000 for the Rails server
 EXPOSE 3000
+
+# Set entrypoint
+ENTRYPOINT ["/app/bin/docker-entrypoint"]
 
 # Command to start the Rails server
 CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]

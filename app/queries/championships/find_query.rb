@@ -2,16 +2,17 @@
 
 module Championships
   class FindQuery < ApplicationQuery
-    def initialize(id:)
+    def initialize(id:, includes: [])
       @id = id
+      @includes = includes
     end
 
     def call
-      Championships::CollectionQuery.new(relation: Championship.where(id: id)).call.first!
+      Championships::CollectionQuery.new(relation: Championship.where(id: id), includes: includes).call.first!
     end
 
     private
 
-    attr_reader :id
+    attr_reader :id, :includes
   end
 end

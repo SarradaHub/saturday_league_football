@@ -10,6 +10,10 @@ SimpleCov.start 'rails' do
   ]
 
   add_group 'Services', 'app/services'
+  add_group 'Policies', 'app/policies'
+  add_group 'Presenters', 'app/presenters'
+  add_group 'Queries', 'app/queries'
+  add_group 'Serializers', 'app/serializers'
 
   enable_coverage(:branch)
   enable_coverage_for_eval

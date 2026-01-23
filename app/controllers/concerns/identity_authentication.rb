@@ -12,6 +12,7 @@ module IdentityAuthentication
     return render_unauthorized unless token
 
     result = IdentityServiceClient.validate_token(token)
+    return render_unauthorized unless result
 
     if result[:valid]
       @current_user = result[:user]

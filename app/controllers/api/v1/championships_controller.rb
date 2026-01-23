@@ -5,11 +5,29 @@ module Api
     class ChampionshipsController < Api::V1::ApplicationController
       before_action :set_championship, only: %i[update destroy]
       def index
-        @championships = Championships::CollectionQuery.new.call
+        includes_list = parse_includes
+        pagination = paginate_params
+        # Get base relation for count
+        base_query = Championships::CollectionQuery.new(includes: includes_list, page: nil, per_page: nil)
+        base_relation = base_query.call
+        # Get paginated collection
+        collection = Championships::CollectionQuery.new(
+          includes: includes_list,
+          page: pagination[:page],
+          per_page: pagination[:per_page]
+        ).call
+        render_collection(collection, presenter_class: ChampionshipPresenter, base_relation: base_relation)
       end
 
       def show
-        @championship = Championships::FindQuery.new(id: params[:id]).call
+        includes_list = parse_includes
+        @championship = Championships::FindQuery.new(id: params[:id], includes: includes_list).call
+        championship_json = ChampionshipPresenter.new(@championship).as_json
+        allowed_fields = parse_fields
+        championship_json = filter_fields(championship_json, allowed_fields) if allowed_fields.present?
+        render json: championship_json
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Championship not found' }, status: :not_found
       end
 
       def create
@@ -17,7 +35,7 @@ module Api
         if @championship.save
           render json: ChampionshipPresenter.new(@championship).as_json, status: :created
         else
-          render json: @championship.errors, status: :unprocessable_entity
+          render json: @championship.errors, status: :unprocessable_content
         end
       end
 
@@ -25,7 +43,7 @@ module Api
         if @championship.update(championship_params)
           render json: ChampionshipPresenter.new(@championship).as_json
         else
-          render json: @championship.errors, status: :unprocessable_entity
+          render json: @championship.errors, status: :unprocessable_content
         end
       end
 

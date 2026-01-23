@@ -6,6 +6,6 @@ if @team.persisted?
     json.partial! 'api/v1/teams/team', resource: @team
   end
 else
-  json.status :unprocessable_entity
+  json.status :unprocessable_content
   json.errors @team.errors.full_messages
 end
