@@ -58,6 +58,12 @@ class TestApplicationController < Api::V1::ApplicationController
     collection = Team.none
     render_collection(collection, presenter_class: TeamPresenter)
   end
+
+  def test_render_collection_fallback_base_relation
+    # Collection is neither Relation nor array of AR: use fallback base_relation = collection
+    collection = [{ 'id' => 1, 'name' => 'A' }, { 'id' => 2, 'name' => 'B' }]
+    render_collection(collection)
+  end
 end
 
 RSpec.describe Api::V1::ApplicationController, type: :controller do
@@ -272,6 +278,26 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         expect(json_response['meta']['total']).to eq(0)
         expect(json_response['meta']['total_pages']).to eq(0)
         expect(json_response['data']).to eq([])
+      end
+    end
+
+    context 'fallback base_relation when collection is neither Relation nor array of AR' do
+      before do
+        routes.draw do
+          get 'test_render_collection_fallback_base_relation' => 'test_application#test_render_collection_fallback_base_relation'
+        end
+      end
+
+      it 'uses collection as base_relation and size for total' do
+        get :test_render_collection_fallback_base_relation, params: { per_page: 10, page: 1 }, format: :json
+
+        expect(response).to have_http_status(:ok)
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['data']).to be_an(Array)
+        expect(json_response['data'].size).to eq(2)
+        expect(json_response['meta']['total']).to eq(2)
+        expect(json_response['meta']['total_pages']).to eq(1)
       end
     end
 

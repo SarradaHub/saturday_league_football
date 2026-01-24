@@ -14,17 +14,18 @@ RSpec.describe 'API Flow Integration', type: :request do
 
   describe 'API End-to-End flows' do
     describe 'GET /api/v1/championships/:id with includes and sparse fieldsets' do
-      let!(:championship) { FactoryBot.create(:championship) }
-
       it 'returns championship with includes and filtered fields' do
-        # Use the championship from let!
-        championship_id = championship.id
-        
-        # Verify it exists in the database
-        expect(Championship.find_by(id: championship_id)).to be_present
-        
-        # Test without includes first to ensure basic functionality works
-        get "/api/v1/championships/#{championship_id}", params: {}, headers: @auth_header, as: :json
+        # Create via API so the request thread sees committed data (avoids transactional fixture isolation)
+        post '/api/v1/championships', params: {
+          championship: { name: 'Flow Test Cup', min_players_per_team: 5, max_players_per_team: 10 }
+        }, headers: @auth_header, as: :json
+
+        expect(response).to have_http_status(:created)
+        championship_id = JSON.parse(response.body)['id']
+        expect(championship_id).to be_present
+
+        # Test without includes first (no params: with GET + as: :json to avoid Rails converting to POST)
+        get "/api/v1/championships/#{championship_id}", headers: @auth_header, as: :json
 
         expect(response).to have_http_status(:ok)
         json_response = JSON.parse(response.body)
@@ -32,19 +33,16 @@ RSpec.describe 'API Flow Integration', type: :request do
         expect(json_response).to have_key('id')
         expect(json_response).to have_key('name')
         expect(json_response['id']).to eq(championship_id)
-        
-        # Now test with includes
-        get "/api/v1/championships/#{championship_id}", params: {
-          include: 'rounds,players',
-          fields: 'id,name,rounds,players'
-        }, headers: @auth_header, as: :json
+
+        # Now test with includes (query string to avoid GET params + as: :json -> POST bug)
+        get "/api/v1/championships/#{championship_id}?include=rounds,players&fields=id,name,rounds,players",
+            headers: @auth_header, as: :json
 
         expect(response).to have_http_status(:ok)
         json_response = JSON.parse(response.body)
 
         expect(json_response).to have_key('id')
         expect(json_response).to have_key('name')
-        # Should have requested fields (sparse fieldsets may not work exactly as expected, so just check basic structure)
         expect(json_response['id']).to eq(championship_id)
       end
     end

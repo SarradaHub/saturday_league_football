@@ -244,35 +244,53 @@ RSpec.describe PlayerPresenter do
   end
 
   describe '#serialized_rounds' do
-    let(:round) { FactoryBot.create(:round, :with_championship) }
+    context 'with rounds' do
+      let(:round) { FactoryBot.create(:round, :with_championship) }
 
-    before do
-      FactoryBot.create(:player_round, player: player, round: round)
+      before do
+        FactoryBot.create(:player_round, player: player, round: round)
+      end
+
+      it 'serializes rounds using RoundSerializer' do
+        serialized = presenter.send(:serialized_rounds)
+        expect(serialized).to be_an(Array)
+        expect(serialized.first).to be_a(Hash)
+        expect(serialized.first[:id]).to eq(round.id)
+        expect(serialized.first[:name]).to eq(round.name)
+      end
     end
 
-    it 'serializes rounds using RoundSerializer' do
-      serialized = presenter.send(:serialized_rounds)
-      expect(serialized).to be_an(Array)
-      expect(serialized.first).to be_a(Hash)
-      expect(serialized.first[:id]).to eq(round.id)
-      expect(serialized.first[:name]).to eq(round.name)
+    context 'when rounds are empty' do
+      it 'returns empty array' do
+        serialized = presenter.send(:serialized_rounds)
+        expect(serialized).to eq([])
+      end
     end
   end
 
   describe '#serialized_stats' do
-    let(:round) { FactoryBot.create(:round, :with_championship) }
-    let(:team) { FactoryBot.create(:team, round: round) }
-    let(:team2) { FactoryBot.create(:team, round: round) }
-    let(:match) { FactoryBot.create(:match, round: round, team_1: team, team_2: team2) }
-    let!(:player_stat) { FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 1, assists: 0, own_goals: 0) }
+    context 'with player_stats' do
+      let(:round) { FactoryBot.create(:round, :with_championship) }
+      let(:team) { FactoryBot.create(:team, round: round) }
+      let(:team2) { FactoryBot.create(:team, round: round) }
+      let(:match) { FactoryBot.create(:match, round: round, team_1: team, team_2: team2) }
+      let!(:player_stat) { FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 1, assists: 0, own_goals: 0) }
 
-    it 'serializes player_stats using PlayerStatSerializer' do
-      serialized = presenter.send(:serialized_stats)
-      expect(serialized).to be_an(Array)
-      expect(serialized.length).to eq(1)
-      expect(serialized.first).to be_a(Hash)
-      expect(serialized.first[:id]).to eq(player_stat.id)
-      expect(serialized.first[:goals]).to eq(player_stat.goals)
+      it 'serializes player_stats using PlayerStatSerializer' do
+        serialized = presenter.send(:serialized_stats)
+        expect(serialized).to be_an(Array)
+        expect(serialized.length).to eq(1)
+        expect(serialized.first).to be_a(Hash)
+        expect(serialized.first[:id]).to eq(player_stat.id)
+        expect(serialized.first[:goals]).to eq(player_stat.goals)
+      end
+    end
+
+    context 'when player_stats are empty' do
+      it 'returns empty array' do
+        serialized = presenter.send(:serialized_stats)
+        expect(serialized).to eq([])
+      end
     end
   end
 

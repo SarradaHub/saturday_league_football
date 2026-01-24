@@ -66,6 +66,28 @@ RSpec.describe MatchPresenter do
     end
   end
 
+  describe '#draw' do
+    context 'when match is a draw' do
+      let(:match) { FactoryBot.create(:match, round: round, team_1: team_1, team_2: team_2, draw: true, winning_team: nil) }
+
+      it 'includes draw true in as_json' do
+        json = presenter.as_json
+        expect(json[:draw]).to be true
+        expect(json[:winning_team]).to be_nil
+      end
+    end
+
+    context 'when match is not a draw' do
+      let(:match) { FactoryBot.create(:match, round: round, team_1: team_1, team_2: team_2, draw: false, winning_team: team_1) }
+
+      it 'includes draw false in as_json' do
+        json = presenter.as_json
+        expect(json[:draw]).to be false
+        expect(json[:winning_team]).to be_a(Hash)
+      end
+    end
+  end
+
   describe '#team_1' do
     context 'when team_1 is present' do
       it 'serializes team_1' do
@@ -83,6 +105,20 @@ RSpec.describe MatchPresenter do
         expect(json[:team_2]).to be_a(Hash)
         expect(json[:team_2][:id]).to eq(team_2.id)
       end
+    end
+  end
+
+  describe '#team_1_players and #team_2_players as public API' do
+    it 'team_1_players returns same as team_players(team_1)' do
+      expect(presenter.team_1_players).to eq(presenter.send(:team_players, team_1))
+      expect(presenter.team_1_players).to be_an(Array)
+      expect(presenter.team_1_players.first[:id]).to eq(team_1_player.id)
+    end
+
+    it 'team_2_players returns same as team_players(team_2)' do
+      expect(presenter.team_2_players).to eq(presenter.send(:team_players, team_2))
+      expect(presenter.team_2_players).to be_an(Array)
+      expect(presenter.team_2_players.first[:id]).to eq(team_2_player.id)
     end
   end
 
@@ -145,6 +181,14 @@ RSpec.describe MatchPresenter do
         result = presenter.send(:hash_to_player_array, team_1, hash)
         expect(result.length).to eq(1)
         expect(result.first[:id]).to eq(team_1_player.id)
+      end
+    end
+
+    context 'with count zero' do
+      it 'returns empty array when count is 0' do
+        hash = { team_1_player.name => 0 }
+        result = presenter.send(:hash_to_player_array, team_1, hash)
+        expect(result).to eq([])
       end
     end
   end

@@ -201,4 +201,39 @@ RSpec.describe ChampionshipPresenter do
       expect(json[:players]).to eq([])
     end
   end
+
+  context 'with rounds but no players' do
+    before do
+      FactoryBot.create(:round, championship: championship)
+      FactoryBot.create(:round, championship: championship)
+    end
+
+    it 'returns round_total > 0, total_players 0, non-empty rounds, empty players' do
+      json = presenter.as_json
+      expect(json[:round_total]).to eq(2)
+      expect(json[:total_players]).to eq(0)
+      expect(json[:rounds]).to be_an(Array)
+      expect(json[:rounds].length).to eq(2)
+      expect(json[:players]).to eq([])
+    end
+  end
+
+  context 'with one round and one player' do
+    let!(:round) { FactoryBot.create(:round, championship: championship) }
+    let!(:player) { FactoryBot.create(:player) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+    end
+
+    it 'exercises serialized_rounds and serialized_players with single-element collections' do
+      json = presenter.as_json
+      expect(json[:round_total]).to eq(1)
+      expect(json[:total_players]).to eq(1)
+      expect(json[:rounds].length).to eq(1)
+      expect(json[:players].length).to eq(1)
+      expect(json[:rounds].first[:id]).to eq(round.id)
+      expect(json[:players].first[:id]).to eq(player.id)
+    end
+  end
 end

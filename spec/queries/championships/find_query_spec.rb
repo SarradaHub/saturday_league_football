@@ -22,10 +22,13 @@ RSpec.describe Championships::FindQuery do
       end
 
       it 'uses CollectionQuery to find the championship' do
-        # Verify that CollectionQuery is called with correct relation
+        # Verify that CollectionQuery is called with correct relation and includes
         # The actual implementation will call .first! on the result
-        expect(Championships::CollectionQuery).to receive(:new).with(relation: Championship.where(id: championship_id)).and_call_original
-        
+        expect(Championships::CollectionQuery).to receive(:new).with(
+          relation: Championship.where(id: championship_id),
+          includes: []
+        ).and_call_original
+
         result = query_result
         expect(result).to eq(championship)
       end

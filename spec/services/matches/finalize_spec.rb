@@ -100,11 +100,21 @@ RSpec.describe Matches::Finalize do
     end
 
     context 'when team is blank' do
-      # Skip this test as Match model requires team_1 and team_2 to exist
-      # The service handles blank teams internally but the model validation prevents creating such records
-      xit 'handles blank team gracefully' do
-        # This scenario is handled in the service code but cannot be tested
-        # due to model validations requiring teams to exist
+      before do
+        FactoryBot.create(:player_stat, player: player2, team: team2, match: match, goals: 1, assists: 0, own_goals: 0)
+      end
+
+      it 'handles blank team gracefully' do
+        # Match model requires team_1/team_2; stub team_1 as nil to exercise calculate_goals_for(team.blank?) branch
+        allow(match).to receive(:team_1).and_return(nil)
+        allow(match).to receive(:team_1_id).and_return(nil)
+
+        call_result
+        match.reload
+
+        # team_1 treated as blank => 0 goals; team_2 has 1 => team_2 wins
+        expect(match.winning_team_id).to eq(team2.id)
+        expect(match.draw).to be false
       end
     end
 

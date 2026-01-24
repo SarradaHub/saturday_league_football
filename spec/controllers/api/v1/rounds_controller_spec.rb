@@ -16,13 +16,13 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
     let!(:rounds) { FactoryBot.create_list(:round, 5, :with_championship) }
 
     it 'lists all rounds' do
-      get :index, format: :json
-      
+      get :index, params: { per_page: 100 }, format: :json
+
       expect(response).to have_http_status(:ok)
       json_response = JSON.parse(response.body)
-      
+
       expect(json_response).to have_key('data')
-      # Check that our created rounds are in the response
+      # Check that our created rounds are in the response (per_page 100 avoids pagination cutting off our rounds)
       round_ids = json_response['data'].map { |r| r['id'] }
       expect(round_ids).to include(*rounds.map(&:id))
     end

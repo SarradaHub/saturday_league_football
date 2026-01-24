@@ -95,6 +95,16 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
         expect(json_response).to have_key('description')
       end
     end
+
+    context 'when championship does not exist' do
+      it 'returns 404 and error message' do
+        non_existent_id = (Championship.maximum(:id) || 0) + 99_999
+        get :show, params: { id: non_existent_id }, format: :json
+        expect(response).to have_http_status(:not_found)
+        json_response = JSON.parse(response.body)
+        expect(json_response).to eq('error' => 'Championship not found')
+      end
+    end
   end
 
   describe '#create' do
