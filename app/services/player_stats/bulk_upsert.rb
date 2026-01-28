@@ -18,7 +18,7 @@ module PlayerStats
         end
       end
 
-      PlayerStats::CollectionQuery.call(relation: PlayerStat.where(match_id: match_id))
+      PlayerStats::CollectionQuery.new(relation: PlayerStat.where(match_id: match_id)).call.to_a
     end
 
     private

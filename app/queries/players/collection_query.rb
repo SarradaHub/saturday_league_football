@@ -13,7 +13,7 @@ module Players
     def call
       scope = Player.all
       scope = scope.in_championship(championship_id) if championship_id.present?
-      
+
       # Filter by user_id via championship if provided
       if user_id.present?
         scope = scope.joins(player_rounds: { round: :championship })

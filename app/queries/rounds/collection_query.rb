@@ -12,7 +12,7 @@ module Rounds
 
     def call
       scope = relation.order(round_date: :desc)
-      
+
       # Filter by user_id via championship if provided
       scope = scope.joins(:championship).where(championships: { user_id: user_id }) if user_id.present?
 

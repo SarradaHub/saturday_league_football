@@ -12,7 +12,7 @@ module Championships
 
     def call
       scope = relation.order(updated_at: :desc)
-      
+
       # Filter by user_id if provided
       scope = scope.where(user_id: user_id) if user_id.present?
 
@@ -21,19 +21,19 @@ module Championships
       if includes.any?
         includes_to_apply = includes.dup
         includes_hash = {}
-        
+
         # Handle rounds
         if includes.include?('rounds')
           includes_hash[:rounds] = {}
         end
-        
+
         # If players are requested, eager load through the correct path (rounds -> player_rounds -> player)
         # and also load player associations to avoid N+1 in PlayerPresenter
         if includes.include?('players')
           includes_hash[:rounds] ||= {}
           includes_hash[:rounds][:player_rounds] = { player: [:player_stats, :rounds, :teams] }
         end
-        
+
         if includes_hash.any?
           scope = scope.includes(includes_hash)
         else

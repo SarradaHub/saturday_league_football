@@ -15,6 +15,7 @@ RSpec.describe Players::MatchStatistics do
   before do
     team.players << player
 
+<<<<<<< HEAD
     # Total do time: 3 gols >= 3 assistências (válido)
     FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 2, assists: 1, own_goals: 0)
     FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 1, assists: 2, own_goals: 0)
@@ -22,11 +23,21 @@ RSpec.describe Players::MatchStatistics do
 
   it 'aggregates match totals' do
     expect(call_result).to include(goals_in_match: 3, assists_in_match: 3, own_goals_in_match: 0)
+=======
+    FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 1, assists: 2, own_goals: 0)
+    FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 0, assists: 1, own_goals: 0)
+  end
+
+
+  it 'aggregates match totals' do
+    expect(call_result).to include(goals_in_match: 1, assists_in_match: 3, own_goals_in_match: 0)
+>>>>>>> main
   end
 
   it 'counts matches played for the given team/round' do
     expect(call_result[:total_matches_for_team]).to eq(1)
   end
+<<<<<<< HEAD
 
   context 'when player has no stats in match' do
     before do
@@ -145,4 +156,6 @@ RSpec.describe Players::MatchStatistics do
       expect(result[:assists_in_match]).to eq(3) # Only from match
     end
   end
+=======
+>>>>>>> main
 end

@@ -132,7 +132,7 @@ begin
   print_header "CREATING ADMIN USER"
   admin_email = ENV.fetch('ADMIN_EMAIL', 'admin@example.com')
   admin_password = ENV.fetch('ADMIN_PASSWORD', 'password123')
-  
+
   admin = User.find_or_initialize_by(email: admin_email)
   if admin.new_record?
     admin.password = admin_password
@@ -188,30 +188,30 @@ begin
       print_subitem "Adding players to #{round.name}"
       round_teams_count = round.teams.count
       total_players_needed = round_teams_count * players_per_team
-      
+
       # Create players for this round
       players_for_round = total_players_needed.times.map do |i|
         player = FactoryBot.create(:player)
         print_subitem "Player #{i+1}", player.name
         player
       end
-      
+
       # Skip callback temporarily for better performance
       PlayerRound.skip_callback(:commit, :after, :auto_balance_round_teams)
-      
+
       players_for_round.each do |player|
         pr = FactoryBot.create(:player_round, player: player, round: round)
         print_subitem "PlayerRound created", "Player: #{player.name}", "Round: #{round.name}"
       end
-      
+
       # Re-enable callback
       PlayerRound.set_callback(:commit, :after, :auto_balance_round_teams)
-      
+
       # Call RoundTeamGenerator once after all players are added to this round
       # This will distribute players evenly among teams (6 per team)
       RoundTeamGenerator.call(round)
       print_subitem "Teams balanced for #{round.name} (#{players_per_team} players per team)"
-      
+
       # Verify each team has exactly 6 players
       round.teams.each do |team|
         if team.players.count != players_per_team
@@ -242,7 +242,7 @@ begin
         # Decide winner before creating stats (to ensure winner has max 2 goals)
         # Randomly decide winner (or draw)
         match_result = [:team1_wins, :team2_wins, :draw].sample
-        
+
         is_draw = match_result == :draw
         winning_team = if is_draw
                          nil
@@ -283,7 +283,7 @@ begin
         # Calculate final goals to verify
         team1_goals = calculate_goals_for(match, team1, team2)
         team2_goals = calculate_goals_for(match, team2, team1)
-        
+
         # Verify winner has max 2 goals
         if winning_team
           winner_goals = winning_team == team1 ? team1_goals : team2_goals

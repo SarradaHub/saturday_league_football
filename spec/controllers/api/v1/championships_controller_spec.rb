@@ -3,6 +3,7 @@
 require 'rails_helper'
 
 RSpec.describe Api::V1::ChampionshipsController, type: :controller do
+<<<<<<< HEAD
   before do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
@@ -105,6 +106,15 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
         expect(json_response).to eq('error' => 'Championship not found')
       end
     end
+=======
+  let(:championship_sample) { FactoryBot.create(:championship) }
+
+  describe '#index' do
+    it 'assigns @championships' do
+      get :index, format: :json
+      expect(response).to have_http_status(:success)
+    end
+>>>>>>> main
   end
 
   describe '#create' do
@@ -123,12 +133,15 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
         expect { perform_request }.to change(Championship, :count).by(1)
         expect(response).to have_http_status(:created)
       end
+<<<<<<< HEAD
 
       it 'returns created championship' do
         perform_request
         json_response = JSON.parse(response.body)
         expect(json_response['name']).to eq('La Liga')
       end
+=======
+>>>>>>> main
     end
 
     context 'with invalid params' do
@@ -142,6 +155,7 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
 
       it 'does not create a new championship' do
         expect { perform_request }.not_to change(Championship, :count)
+<<<<<<< HEAD
         expect(response).to have_http_status(:unprocessable_content)
       end
 
@@ -149,11 +163,15 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
         perform_request
         json_response = JSON.parse(response.body)
         expect(json_response).to have_key('name')
+=======
+        expect(response).to have_http_status(:unprocessable_entity)
+>>>>>>> main
       end
     end
   end
 
   describe '#update' do
+<<<<<<< HEAD
     context 'with valid params' do
       it 'updates the championship' do
         patch :update, params: { id: championship_sample.id, championship: { name: 'Updated' } }, format: :json
@@ -181,6 +199,11 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
         json_response = JSON.parse(response.body)
         expect(json_response).to have_key('name')
       end
+=======
+    it 'updates the championship' do
+      patch :update, params: { id: championship_sample.id, championship: { name: 'Updated' } }, format: :json
+      expect(championship_sample.reload.name).to eq('Updated')
+>>>>>>> main
     end
   end
 
@@ -188,7 +211,10 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
     it 'destroys the requested championship' do
       championship = FactoryBot.create(:championship)
       expect { delete :destroy, params: { id: championship.id }, format: :json }.to change(Championship, :count).by(-1)
+<<<<<<< HEAD
       expect(response).to have_http_status(:no_content)
+=======
+>>>>>>> main
     end
   end
 end

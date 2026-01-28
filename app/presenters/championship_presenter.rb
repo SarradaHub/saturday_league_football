@@ -15,17 +15,17 @@ class ChampionshipPresenter < ApplicationPresenter
       created_at: created_at,
       updated_at: updated_at
     }
-    
+
     # Only serialize rounds and players if explicitly requested
     result[:rounds] = serialized_rounds if options[:include_rounds] || resource.association(:rounds).loaded?
-    
+
     # For players, check if explicitly requested, directly loaded, or available through loaded rounds
-    players_available = options[:include_players] || 
+    players_available = options[:include_players] ||
                         resource.association(:players).loaded? ||
-                        (resource.association(:rounds).loaded? && resource.rounds.any? && 
+                        (resource.association(:rounds).loaded? && resource.rounds.any? &&
                          resource.rounds.first.association(:player_rounds).loaded?)
     result[:players] = serialized_players if players_available
-    
+
     result
   end
 
@@ -50,7 +50,7 @@ class ChampionshipPresenter < ApplicationPresenter
       end.uniq
       return loaded_players if loaded_players.any?
     end
-    
+
     # Fallback to direct association access
     resource.players.distinct
   end

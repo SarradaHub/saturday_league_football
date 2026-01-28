@@ -12,7 +12,7 @@ module PlayerStats
 
     def call
       scope = relation
-      
+
       # Filter by user_id via championship if provided
       if user_id.present?
         scope = scope.joins(match: { round: :championship })
@@ -22,6 +22,8 @@ module PlayerStats
       # Apply includes only if specified
       if includes.any?
         scope = apply_includes(scope, includes)
+      else
+        scope = scope.includes(:player, :team, :match)
       end
 
       # Apply pagination if specified

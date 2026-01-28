@@ -36,7 +36,7 @@ module IdentityAuthentication
       # Sync user from IdentityService to local User model
       identity_user_data = result[:user]
       local_user = Users::SyncFromIdentityService.call(identity_user_data)
-      
+
       if local_user
         Rails.logger.info "IdentityService token validated successfully for user: #{local_user.id}"
         @current_user = local_user
@@ -58,7 +58,7 @@ module IdentityAuthentication
       Rails.logger.debug "Decoded token: #{decoded}"
       user_id, _timestamp = decoded.split(':')
       return nil unless user_id.present?
-      
+
       user = User.find_by(id: user_id.to_i)
       Rails.logger.debug "User found: #{user.present? ? "yes (id: #{user.id})" : 'no'}"
       user
@@ -69,7 +69,7 @@ module IdentityAuthentication
         Rails.logger.debug "Decoded token (fallback): #{decoded}"
         user_id, _timestamp = decoded.split(':')
         return nil unless user_id.present?
-        
+
         user = User.find_by(id: user_id.to_i)
         Rails.logger.debug "User found (fallback): #{user.present? ? "yes (id: #{user.id})" : 'no'}"
         user
