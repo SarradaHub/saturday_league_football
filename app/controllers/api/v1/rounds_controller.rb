@@ -8,19 +8,25 @@ module Api
         includes_list = parse_includes
         pagination = paginate_params
         # Get base relation for count
-        base_query = Rounds::CollectionQuery.new(includes: includes_list, page: nil, per_page: nil)
+        base_query = Rounds::CollectionQuery.new(
+          includes: includes_list,
+          page: nil,
+          per_page: nil,
+          user_id: current_user.id
+        )
         base_relation = base_query.call
         # Get paginated collection
         collection = Rounds::CollectionQuery.new(
           includes: includes_list,
           page: pagination[:page],
-          per_page: pagination[:per_page]
+          per_page: pagination[:per_page],
+          user_id: current_user.id
         ).call
         render_collection(collection, presenter_class: RoundPresenter, base_relation: base_relation)
       end
 
       def show
-        @round = Rounds::FindQuery.new(id: params[:id]).call
+        @round = Rounds::FindQuery.new(id: params[:id], user_id: current_user.id).call
         round_json = RoundPresenter.new(@round).as_json
         allowed_fields = parse_fields
         round_json = filter_fields(round_json, allowed_fields) if allowed_fields.present?
@@ -58,6 +64,8 @@ module Api
 
       def set_round
         @round = Round
+                 .joins(:championship)
+                 .where(championships: { user_id: current_user.id })
                  .includes(
                    matches: %i[team_1 team_2],
                    teams: { player_teams: { player: :player_stats } },

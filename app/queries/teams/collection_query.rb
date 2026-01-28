@@ -2,19 +2,27 @@
 
 module Teams
   class CollectionQuery < ApplicationQuery
-    def initialize(relation: Team.all, includes: [], page: nil, per_page: nil)
+    def initialize(relation: Team.all, includes: [], page: nil, per_page: nil, user_id: nil)
       @relation = relation
       @includes = includes
       @page = page
       @per_page = per_page
+      @user_id = user_id
     end
 
     def call
       scope = relation.order(:name)
+      
+      # Filter by user_id via championship if provided
+      scope = scope.joins(round: :championship).where(championships: { user_id: user_id }) if user_id.present?
 
-      # Apply includes only if specified
+      # Apply includes - add default includes for TeamPresenter when used in lists
+      # TeamPresenter accesses players
       if includes.any?
         scope = apply_includes(scope, includes)
+      else
+        # Use direct includes for default associations
+        scope = scope.includes({ player_teams: :player }, :round)
       end
 
       # Apply pagination if specified
@@ -28,7 +36,7 @@ module Teams
 
     private
 
-    attr_reader :relation, :includes, :page, :per_page
+    attr_reader :relation, :includes, :page, :per_page, :user_id
 
     def apply_includes(scope, includes_list)
       includes_hash = {}

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_11_11_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_24_193202) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -20,7 +20,14 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_11_000000) do
     t.integer "max_players_per_team", null: false
     t.integer "min_players_per_team", null: false
     t.string "name", null: false
+    t.integer "players_count", default: 0, null: false
+    t.integer "rounds_count", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["players_count"], name: "index_championships_on_players_count"
+    t.index ["rounds_count"], name: "index_championships_on_rounds_count"
+    t.index ["updated_at"], name: "index_championships_on_updated_at"
+    t.index ["user_id"], name: "index_championships_on_user_id"
   end
 
   create_table "matches", force: :cascade do |t|
@@ -32,6 +39,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_11_000000) do
     t.bigint "team_2_id"
     t.datetime "updated_at", null: false
     t.bigint "winning_team_id"
+    t.index ["created_at"], name: "index_matches_on_created_at"
+    t.index ["round_id", "team_1_id"], name: "index_matches_on_round_id_and_team_1_id"
+    t.index ["round_id", "team_2_id"], name: "index_matches_on_round_id_and_team_2_id"
     t.index ["round_id"], name: "index_matches_on_round_id"
     t.index ["team_1_id"], name: "index_matches_on_team_1_id"
     t.index ["team_2_id"], name: "index_matches_on_team_2_id"
@@ -78,26 +88,54 @@ ActiveRecord::Schema[8.1].define(version: 2025_11_11_000000) do
   create_table "players", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
+    t.integer "player_stats_count", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_players_on_name"
+    t.index ["player_stats_count"], name: "index_players_on_player_stats_count"
   end
 
   create_table "rounds", force: :cascade do |t|
     t.bigint "championship_id"
     t.datetime "created_at", null: false
+    t.integer "matches_count", default: 0, null: false
     t.string "name", null: false
+    t.integer "players_count", default: 0, null: false
     t.date "round_date"
     t.datetime "updated_at", null: false
     t.index ["championship_id"], name: "index_rounds_on_championship_id"
+    t.index ["matches_count"], name: "index_rounds_on_matches_count"
+    t.index ["players_count"], name: "index_rounds_on_players_count"
+    t.index ["round_date"], name: "index_rounds_on_round_date"
   end
 
   create_table "teams", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
+    t.integer "players_count", default: 0, null: false
     t.bigint "round_id"
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_teams_on_name"
+    t.index ["players_count"], name: "index_teams_on_players_count"
     t.index ["round_id"], name: "index_teams_on_round_id"
   end
 
+  create_table "users", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", default: "", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "external_id"
+    t.boolean "is_admin", default: false, null: false
+    t.datetime "remember_created_at"
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["external_id"], name: "index_users_on_external_id", unique: true
+    t.index ["is_admin"], name: "index_users_on_is_admin"
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+  end
+
+  add_foreign_key "championships", "users"
   add_foreign_key "matches", "rounds"
   add_foreign_key "matches", "teams", column: "team_1_id"
   add_foreign_key "matches", "teams", column: "team_2_id"

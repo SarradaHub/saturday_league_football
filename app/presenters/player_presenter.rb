@@ -19,11 +19,11 @@ class PlayerPresenter < ApplicationPresenter
   end
 
   def rounds
-    resource.rounds
+    @rounds ||= resource.association(:rounds).loaded? ? resource.rounds : resource.rounds.load
   end
 
   def player_stats
-    resource.player_stats
+    @player_stats ||= resource.association(:player_stats).loaded? ? resource.player_stats : resource.player_stats.load
   end
 
   def total_goals

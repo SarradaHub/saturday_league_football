@@ -97,7 +97,12 @@ class MatchPresenter < ApplicationPresenter
   def team_players(team)
     return [] if team.blank?
 
-    team.players.map { |player| PlayerSerializer.new(player).as_json }
+    # Check if players association is already loaded to avoid N+1
+    if team.association(:players).loaded?
+      team.players.map { |player| PlayerSerializer.new(player).as_json }
+    else
+      team.players.load.map { |player| PlayerSerializer.new(player).as_json }
+    end
   end
 
   # Convert hash of player names to counts into array of Player objects

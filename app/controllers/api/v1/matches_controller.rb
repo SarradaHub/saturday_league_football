@@ -13,7 +13,8 @@ module Api
           relation: base_relation_scope,
           includes: includes_list,
           page: nil,
-          per_page: nil
+          per_page: nil,
+          user_id: current_user.id
         )
         base_relation = base_query.call
         # Get paginated collection
@@ -21,13 +22,14 @@ module Api
           relation: base_relation_scope,
           includes: includes_list,
           page: pagination[:page],
-          per_page: pagination[:per_page]
+          per_page: pagination[:per_page],
+          user_id: current_user.id
         ).call
         render_collection(collection, presenter_class: MatchPresenter, base_relation: base_relation)
       end
 
       def show
-        @match = Matches::FindQuery.new(id: params[:id]).call
+        @match = Matches::FindQuery.new(id: params[:id], user_id: current_user.id).call
       end
 
       def create
@@ -62,7 +64,10 @@ module Api
       private
 
       def set_match
-        @match = Match.find(params[:id])
+        @match = Match
+                 .joins(round: :championship)
+                 .where(championships: { user_id: current_user.id })
+                 .find(params[:id])
       end
 
       def match_params

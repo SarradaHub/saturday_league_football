@@ -129,9 +129,25 @@ begin
   #   ActiveRecord::Base.connection.execute("TRUNCATE #{t} RESTART IDENTITY CASCADE")
   # end
 
+  print_header "CREATING ADMIN USER"
+  admin_email = ENV.fetch('ADMIN_EMAIL', 'admin@example.com')
+  admin_password = ENV.fetch('ADMIN_PASSWORD', 'password123')
+  
+  admin = User.find_or_initialize_by(email: admin_email)
+  if admin.new_record?
+    admin.password = admin_password
+    admin.password_confirmation = admin_password
+    admin.is_admin = true
+    admin.save!
+    print_item "Admin user created", admin_email, "Password: #{admin_password}"
+  else
+    admin.update!(is_admin: true) unless admin.is_admin?
+    print_item "Admin user already exists", admin_email
+  end
+
   print_header "CREATING CHAMPIONSHIPS"
   championships = 3.times.map do |i|
-    champ = FactoryBot.create(:championship)
+    champ = FactoryBot.create(:championship, user: admin)
     print_item "Championship #{i+1}", champ.name, champ.description
     champ
   end
@@ -299,6 +315,7 @@ begin
 
   print_header "FINAL CREATION REPORT"
   puts "\n\e[34mTotal Created Records:\e[0m"
+  puts "• Users: #{User.count} (#{User.admin.count} admin)"
   puts "• Championships: #{Championship.count}"
   puts "• Rounds: #{Round.count}"
   puts "• Matches: #{Match.count}"
@@ -307,6 +324,13 @@ begin
   puts "• PlayerTeams: #{PlayerTeam.count}"
   puts "• PlayerRounds: #{PlayerRound.count}"
   puts "• PlayerStats: #{PlayerStat.count}"
+
+  admin = User.admin.first
+  if admin
+    puts "\n\e[33mAdmin Login Credentials:\e[0m"
+    puts "• Email: #{admin.email}"
+    puts "• Password: #{ENV.fetch('ADMIN_PASSWORD', 'password123')}"
+  end
 
   puts "\n\e[32m✅ Seed data created successfully!\e[0m"
 

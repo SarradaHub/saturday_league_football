@@ -2,20 +2,31 @@
 
 module Players
   class CollectionQuery < ApplicationQuery
-    def initialize(championship_id: nil, includes: [], page: nil, per_page: nil)
+    def initialize(championship_id: nil, includes: [], page: nil, per_page: nil, user_id: nil)
       @championship_id = championship_id
       @includes = includes
       @page = page
       @per_page = per_page
+      @user_id = user_id
     end
 
     def call
       scope = Player.all
       scope = scope.in_championship(championship_id) if championship_id.present?
+      
+      # Filter by user_id via championship if provided
+      if user_id.present?
+        scope = scope.joins(player_rounds: { round: :championship })
+                      .where(championships: { user_id: user_id })
+                      .distinct
+      end
 
-      # Apply includes only if specified
+      # Apply includes - add default includes for PlayerPresenter when used in lists
       if includes.any?
         scope = apply_includes(scope, includes)
+      else
+        # Use direct includes for simple default associations
+        scope = scope.includes(:player_stats, :rounds)
       end
 
       scope = scope.order(:name)
@@ -31,7 +42,7 @@ module Players
 
     private
 
-    attr_reader :championship_id, :includes, :page, :per_page
+    attr_reader :championship_id, :includes, :page, :per_page, :user_id
 
     def apply_includes(scope, includes_list)
       includes_hash = {}

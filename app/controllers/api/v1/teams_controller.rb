@@ -13,7 +13,8 @@ module Api
           relation: base_relation_scope,
           includes: includes_list,
           page: nil,
-          per_page: nil
+          per_page: nil,
+          user_id: current_user.id
         )
         base_relation = base_query.call
         # Get paginated collection
@@ -21,13 +22,14 @@ module Api
           relation: base_relation_scope,
           includes: includes_list,
           page: pagination[:page],
-          per_page: pagination[:per_page]
+          per_page: pagination[:per_page],
+          user_id: current_user.id
         ).call
         render_collection(collection, presenter_class: TeamPresenter, base_relation: base_relation)
       end
 
       def show
-        @team = Teams::FindQuery.new(id: params[:id]).call
+        @team = Teams::FindQuery.new(id: params[:id], user_id: current_user.id).call
       end
 
       def create
@@ -55,7 +57,10 @@ module Api
       private
 
       def set_team
-        @team = Team.find(params[:id])
+        @team = Team
+                .joins(round: :championship)
+                .where(championships: { user_id: current_user.id })
+                .find(params[:id])
       end
 
       def team_params

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 class Round < ApplicationRecord
-  belongs_to :championship
-  has_many :matches, dependent: :destroy
-  has_many :player_rounds
+  belongs_to :championship, counter_cache: true
+  has_many :matches, dependent: :destroy, counter_cache: true
+  has_many :player_rounds, counter_cache: :players_count
   accepts_nested_attributes_for :player_rounds, allow_destroy: true
   has_many :players, through: :player_rounds
   has_many :teams

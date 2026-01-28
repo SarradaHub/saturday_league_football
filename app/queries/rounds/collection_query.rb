@@ -2,19 +2,27 @@
 
 module Rounds
   class CollectionQuery < ApplicationQuery
-    def initialize(relation: Round.all, includes: [], page: nil, per_page: nil)
+    def initialize(relation: Round.all, includes: [], page: nil, per_page: nil, user_id: nil)
       @relation = relation
       @includes = includes
       @page = page
       @per_page = per_page
+      @user_id = user_id
     end
 
     def call
       scope = relation.order(round_date: :desc)
+      
+      # Filter by user_id via championship if provided
+      scope = scope.joins(:championship).where(championships: { user_id: user_id }) if user_id.present?
 
-      # Apply includes only if specified
+      # Apply includes - add default includes for RoundPresenter when used in lists
+      # RoundPresenter accesses matches, players, and teams
       if includes.any?
         scope = apply_includes(scope, includes)
+      else
+        # Use direct includes for simple default associations
+        scope = scope.includes(:matches, :championship)
       end
 
       # Apply pagination if specified
@@ -28,7 +36,7 @@ module Rounds
 
     private
 
-    attr_reader :relation, :includes, :page, :per_page
+    attr_reader :relation, :includes, :page, :per_page, :user_id
 
     def apply_includes(scope, includes_list)
       includes_hash = {}

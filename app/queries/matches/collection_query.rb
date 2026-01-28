@@ -2,19 +2,26 @@
 
 module Matches
   class CollectionQuery < ApplicationQuery
-    def initialize(relation: Match.all, includes: [], page: nil, per_page: nil)
+    def initialize(relation: Match.all, includes: [], page: nil, per_page: nil, user_id: nil)
       @relation = relation
       @includes = includes
       @page = page
       @per_page = per_page
+      @user_id = user_id
     end
 
     def call
       scope = relation.order(created_at: :desc)
+      
+      # Filter by user_id via championship if provided
+      scope = scope.joins(round: :championship).where(championships: { user_id: user_id }) if user_id.present?
 
-      # Apply includes only if specified
+      # Apply includes - add default includes for MatchPresenter when used in lists
       if includes.any?
         scope = apply_includes(scope, includes)
+      else
+        # Use direct includes for default associations
+        scope = scope.includes({ team_1: :players }, { team_2: :players }, :winning_team, :round)
       end
 
       # Apply pagination if specified
@@ -28,7 +35,7 @@ module Matches
 
     private
 
-    attr_reader :relation, :includes, :page, :per_page
+    attr_reader :relation, :includes, :page, :per_page, :user_id
 
     def apply_includes(scope, includes_list)
       includes_hash = {}

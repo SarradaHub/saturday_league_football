@@ -21,8 +21,16 @@ class RoundPresenter < ApplicationPresenter
     resource.matches
   end
 
+  def matches_count
+    resource.matches_count || resource.matches.count
+  end
+
   def players
     resource.players.distinct
+  end
+
+  def players_count
+    resource.players_count || resource.players.distinct.count
   end
 
   def teams

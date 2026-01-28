@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class PlayerStat < ApplicationRecord
-  belongs_to :player, dependent: :destroy
+  belongs_to :player, counter_cache: true, dependent: :destroy
   belongs_to :team, dependent: :destroy
   belongs_to :match, dependent: :destroy
 

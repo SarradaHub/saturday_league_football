@@ -12,7 +12,8 @@ module Api
           championship_id: params[:championship_id],
           includes: includes_list,
           page: nil,
-          per_page: nil
+          per_page: nil,
+          user_id: current_user.id
         )
         base_relation = base_query.call
         # Get paginated collection
@@ -20,7 +21,8 @@ module Api
           championship_id: params[:championship_id],
           includes: includes_list,
           page: pagination[:page],
-          per_page: pagination[:per_page]
+          per_page: pagination[:per_page],
+          user_id: current_user.id
         ).call
         render_collection(collection, presenter_class: PlayerPresenter, base_relation: base_relation)
       end
@@ -71,7 +73,11 @@ module Api
       private
 
       def set_player
-        @player = Player.includes(:player_stats, :rounds, :teams).find(params[:id])
+        @player = Player
+                  .joins(player_rounds: { round: :championship })
+                  .where(championships: { user_id: current_user.id })
+                  .includes(:player_stats, :rounds, :teams)
+                  .find(params[:id])
       end
 
       def player_params

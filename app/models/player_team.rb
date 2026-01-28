@@ -18,7 +18,7 @@ class PlayerTeam < ApplicationRecord
     max = championship.max_players_per_team
     return unless max.positive?
 
-    current_size = team.player_teams.count
+    current_size = team.players_count || 0
     return if current_size < max
 
     errors.add(:team, "has already reached the maximum of #{max} players")
@@ -33,7 +33,7 @@ class PlayerTeam < ApplicationRecord
     min = championship.min_players_per_team
     return unless min.positive?
 
-    current_size = team.player_teams.count
+    current_size = team.players_count || 0
     return unless current_size <= min
 
     errors.add(:team, :greater_than_or_equal_to, count: min)

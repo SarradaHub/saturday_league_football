@@ -9,13 +9,19 @@ module Api
         includes_list = parse_includes
         pagination = paginate_params
         # Get base relation for count
-        base_query = PlayerStats::CollectionQuery.new(includes: includes_list, page: nil, per_page: nil)
+        base_query = PlayerStats::CollectionQuery.new(
+          includes: includes_list,
+          page: nil,
+          per_page: nil,
+          user_id: current_user.id
+        )
         base_relation = base_query.call
         # Get paginated collection
         collection = PlayerStats::CollectionQuery.new(
           includes: includes_list,
           page: pagination[:page],
-          per_page: pagination[:per_page]
+          per_page: pagination[:per_page],
+          user_id: current_user.id
         ).call
         render_collection(collection, serializer_class: PlayerStatSerializer, base_relation: base_relation)
       end
@@ -56,7 +62,8 @@ module Api
           relation: base_relation_scope,
           includes: includes_list,
           page: nil,
-          per_page: nil
+          per_page: nil,
+          user_id: current_user.id
         )
         base_relation = base_query.call
         # Get paginated collection
@@ -64,7 +71,8 @@ module Api
           relation: base_relation_scope,
           includes: includes_list,
           page: pagination[:page],
-          per_page: pagination[:per_page]
+          per_page: pagination[:per_page],
+          user_id: current_user.id
         ).call
         render_collection(collection, serializer_class: PlayerStatSerializer, base_relation: base_relation)
       end
@@ -88,7 +96,10 @@ module Api
       private
 
       def set_player_stat
-        @player_stat = PlayerStat.find(params[:id])
+        @player_stat = PlayerStat
+                       .joins(match: { round: :championship })
+                       .where(championships: { user_id: current_user.id })
+                       .find(params[:id])
       end
 
       def player_stat_params

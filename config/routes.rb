@@ -7,6 +7,13 @@ Rails.application.routes.draw do
   get 'health', to: 'health#health'
   get 'ready', to: 'health#ready'
 
+  # Devise routes for User authentication
+  devise_for :users, 
+             skip: [:registrations, :passwords, :confirmations],
+             controllers: {
+               sessions: 'users/sessions'
+             }
+
   namespace :api do
     namespace :v1 do
       resources :championships, defaults: { format: :json }

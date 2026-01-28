@@ -32,10 +32,11 @@ module Api
         items = collection.is_a?(ActiveRecord::Relation) ? collection.to_a : collection
 
         # Serialize items
+        includes_list = parse_includes
         serialized_items = if serializer_class
                              items.map { |item| serializer_class.new(item).as_json }
                            elsif presenter_class
-                             items.map { |item| presenter_class.new(item).as_json }
+                             items.map { |item| presenter_class.new(item).as_json(include_players: includes_list.include?('players'), include_rounds: includes_list.include?('rounds')) }
                            else
                              items.map(&:as_json)
                            end
