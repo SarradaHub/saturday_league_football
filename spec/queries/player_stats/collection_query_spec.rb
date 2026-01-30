@@ -100,11 +100,11 @@ RSpec.describe PlayerStats::CollectionQuery do
       context 'with empty includes array' do
         let(:params) { { includes: [] } }
 
-        it 'does not apply includes' do
+        it 'applies default includes' do
           result = query_result.to_a
           our_stat = result.find { |s| [stat1.id, stat2.id, stat3.id].include?(s.id) }
           expect(our_stat).to be_present
-          expect(our_stat.association(:player).loaded?).to be false
+          expect(our_stat.association(:player).loaded?).to be true
         end
       end
     end

@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 class Championship < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :user
 
-  has_many :rounds, counter_cache: true
+  has_many :rounds, dependent: :destroy, counter_cache: true
   has_many :player_rounds, through: :rounds
   has_many :players, through: :player_rounds
 

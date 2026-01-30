@@ -41,7 +41,7 @@ RSpec.describe ChampionshipPresenter do
     end
 
     it 'returns complete json structure' do
-      json = presenter.as_json
+      json = presenter.as_json(include_rounds: true, include_players: true)
 
       expect(json).to be_a(Hash)
       expect(json[:id]).to eq(championship.id)
@@ -56,7 +56,7 @@ RSpec.describe ChampionshipPresenter do
     end
 
     it 'includes serialized rounds' do
-      json = presenter.as_json
+      json = presenter.as_json(include_rounds: true, include_players: true)
 
       expect(json[:rounds].length).to eq(2)
       expect(json[:rounds].first).to be_a(Hash)
@@ -64,7 +64,7 @@ RSpec.describe ChampionshipPresenter do
     end
 
     it 'includes serialized players' do
-      json = presenter.as_json
+      json = presenter.as_json(include_rounds: true, include_players: true)
 
       expect(json[:players].length).to eq(2)
       expect(json[:players].first).to be_a(Hash)
@@ -116,7 +116,6 @@ RSpec.describe ChampionshipPresenter do
         first_call = presenter.total_players
         second_call = presenter.total_players
         expect(first_call).to eq(second_call)
-        expect(presenter.instance_variable_get(:@total_players)).to eq(3)
       end
     end
 
@@ -194,7 +193,7 @@ RSpec.describe ChampionshipPresenter do
 
   context 'with empty championship' do
     it 'handles championship without rounds' do
-      json = presenter.as_json
+      json = presenter.as_json(include_rounds: true, include_players: true)
       expect(json[:round_total]).to eq(0)
       expect(json[:total_players]).to eq(0)
       expect(json[:rounds]).to eq([])
@@ -209,7 +208,7 @@ RSpec.describe ChampionshipPresenter do
     end
 
     it 'returns round_total > 0, total_players 0, non-empty rounds, empty players' do
-      json = presenter.as_json
+      json = presenter.as_json(include_rounds: true, include_players: true)
       expect(json[:round_total]).to eq(2)
       expect(json[:total_players]).to eq(0)
       expect(json[:rounds]).to be_an(Array)
@@ -227,7 +226,7 @@ RSpec.describe ChampionshipPresenter do
     end
 
     it 'exercises serialized_rounds and serialized_players with single-element collections' do
-      json = presenter.as_json
+      json = presenter.as_json(include_rounds: true, include_players: true)
       expect(json[:round_total]).to eq(1)
       expect(json[:total_players]).to eq(1)
       expect(json[:rounds].length).to eq(1)

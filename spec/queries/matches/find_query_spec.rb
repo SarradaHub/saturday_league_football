@@ -27,7 +27,7 @@ RSpec.describe Matches::FindQuery do
       it 'uses CollectionQuery to find the match' do
         # Verify that CollectionQuery is called with correct relation
         # The actual implementation will call .first! on the result
-        expect(Matches::CollectionQuery).to receive(:new).with(relation: Match.where(id: match_id)).and_call_original
+        expect(Matches::CollectionQuery).to receive(:new).with(relation: Match.where(id: match_id), user_id: nil).and_call_original
         
         result = query_result
         expect(result).to eq(match)

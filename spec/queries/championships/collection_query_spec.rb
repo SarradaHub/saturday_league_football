@@ -87,7 +87,9 @@ RSpec.describe Championships::CollectionQuery do
           result = query_result.to_a
           championship = result.find { |c| c.id == championship1.id }
           expect(championship.association(:rounds).loaded?).to be true
-          expect(championship.association(:players).loaded?).to be true
+          loaded_round = championship.rounds.first
+          expect(loaded_round.association(:player_rounds).loaded?).to be true
+          expect(loaded_round.player_rounds.first.association(:player).loaded?).to be true
         end
       end
 

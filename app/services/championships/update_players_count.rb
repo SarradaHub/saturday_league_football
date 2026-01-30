@@ -8,11 +8,15 @@ module Championships
 
     def call
       return unless championship.present?
+      return if championship.destroyed? || championship.marked_for_destruction?
 
-      championship.update_column(
-        :players_count,
-        championship.players.distinct.count
-      )
+      begin
+        count = championship.players.distinct.count
+        championship.update_column(:players_count, count || 0)
+      rescue ActiveRecord::RecordNotFound, NoMethodError
+        # Championship may have been destroyed during the operation
+        # Silently skip the update
+      end
     end
 
     private

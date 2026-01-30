@@ -16,6 +16,9 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
+      get 'auth/me', to: 'auth#me'
+      get 'auth/validate', to: 'auth#validate'
+      post 'auth/validate', to: 'auth#validate'
       resources :championships, defaults: { format: :json }
       resources :rounds, defaults: { format: :json } do
         member do

@@ -20,7 +20,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       before do
         allow(IdentityServiceClient).to receive(:validate_token).with('valid_token').and_return({
           valid: true,
-          user: { id: 1, name: 'Test User' }
+          user: { id: 1, name: 'Test User', email: 'test.user@example.com' }
         })
         request.headers['Authorization'] = 'Bearer valid_token'
       end
@@ -208,7 +208,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       before do
         allow(IdentityServiceClient).to receive(:validate_token).and_return({
           valid: true,
-          user: { id: 1, name: 'Test User' }
+          user: { id: 1, name: 'Test User', email: 'test.user@example.com' }
         })
         request.headers['Authorization'] = 'Bearer valid_token'
       end
@@ -219,7 +219,9 @@ RSpec.describe IdentityAuthentication, type: :controller do
         expect(response).to have_http_status(:ok)
         # current_user is set via @current_user instance variable
         user = controller.send(:current_user)
-        expect(user).to eq({ id: 1, name: 'Test User' })
+        expect(user).to be_a(User)
+        expect(user.external_id).to eq('1')
+        expect(user.email).to eq('test.user@example.com')
       end
     end
 

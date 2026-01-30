@@ -90,9 +90,9 @@ RSpec.describe Matches::CollectionQuery do
       context 'with empty includes array' do
         let(:params) { { includes: [] } }
 
-        it 'does not apply includes' do
+      it 'applies default includes' do
           result = query_result.to_a
-          expect(result.first.association(:round).loaded?).to be false
+        expect(result.first.association(:round).loaded?).to be true
         end
       end
     end

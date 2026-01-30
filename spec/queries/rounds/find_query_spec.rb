@@ -24,7 +24,7 @@ RSpec.describe Rounds::FindQuery do
       it 'uses CollectionQuery to find the round' do
         # Verify that CollectionQuery is called with correct relation
         # The actual implementation will call .first! on the result
-        expect(Rounds::CollectionQuery).to receive(:new).with(relation: Round.where(id: round_id)).and_call_original
+        expect(Rounds::CollectionQuery).to receive(:new).with(relation: Round.where(id: round_id), user_id: nil).and_call_original
         
         result = query_result
         expect(result).to eq(round)

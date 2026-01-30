@@ -43,7 +43,6 @@ RSpec.describe MatchPresenter do
       expect(stats[:scoreboard]).to eq({ team_1: 3, team_2: 1 })
     end
   end
-<<<<<<< HEAD
 
   describe '#winning_team' do
     context 'when winning_team is present' do
@@ -326,6 +325,4 @@ RSpec.describe MatchPresenter do
       expect(json[:team_2_goals_scorer]).to eq([])
     end
   end
-=======
->>>>>>> main
 end

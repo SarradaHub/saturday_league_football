@@ -26,7 +26,8 @@ RSpec.describe Championships::FindQuery do
         # The actual implementation will call .first! on the result
         expect(Championships::CollectionQuery).to receive(:new).with(
           relation: Championship.where(id: championship_id),
-          includes: []
+          includes: [],
+          user_id: nil
         ).and_call_original
 
         result = query_result

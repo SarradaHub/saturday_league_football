@@ -3,17 +3,30 @@
 require 'rails_helper'
 
 RSpec.describe Api::V1::PlayerStatsController, type: :controller do
+  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+  let(:championship) { FactoryBot.create(:championship, user: current_user) }
+
   before do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: current_user.external_id, email: current_user.email }
     })
+    allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
     request.headers['Authorization'] = 'Bearer valid_token'
   end
 
   describe '#index' do
-    let!(:player_stats) { FactoryBot.create_list(:player_stat, 5, :with_player, :with_team, :with_match) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let!(:player_stats) do
+      Array.new(5) do
+        FactoryBot.create(:player_stat, player: FactoryBot.create(:player), team: team1, match: match,
+                                        goals: 1, assists: 0, own_goals: 0, was_goalkeeper: false)
+      end
+    end
 
     it 'lists all player stats' do
       get :index, format: :json
@@ -108,7 +121,11 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
   end
 
   describe '#show' do
-    let(:player_stat) { FactoryBot.create(:player_stat, :with_player, :with_team, :with_match) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let(:player_stat) { FactoryBot.create(:player_stat, player: FactoryBot.create(:player), team: team1, match: match) }
 
     it 'returns player stat details' do
       get :show, params: { id: player_stat.id }, format: :json
@@ -123,8 +140,9 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
 
   describe '#create' do
     let(:player) { FactoryBot.create(:player) }
-    let(:team) { FactoryBot.create(:team, :with_round) }
-    let(:match) { FactoryBot.create(:match, round: team.round, team_1: team, team_2: FactoryBot.create(:team, round: team.round)) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team, team_2: FactoryBot.create(:team, round: round)) }
 
     context 'with valid params' do
       let(:valid_params) do
@@ -174,7 +192,11 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
   end
 
   describe '#update' do
-    let(:player_stat) { FactoryBot.create(:player_stat, :with_player, :with_team, :with_match, goals: 1, assists: 0, own_goals: 0) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match_record) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let(:player_stat) { FactoryBot.create(:player_stat, player: FactoryBot.create(:player), team: team1, match: match_record, goals: 1, assists: 0, own_goals: 0) }
 
     context 'with valid params' do
       it 'updates the player stat' do
@@ -192,14 +214,14 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
       it 'returns unprocessable_entity when assists on own goals' do
         # This should fail validation: "Assists gol contra não tem assistência"
         # Set own_goals > 0 and assists > 0, which violates the validation
-        patch :update, params: { 
-          id: player_stat.id, 
-          player_stat: { 
+        patch :update, params: {
+          id: player_stat.id,
+          player_stat: {
             goals: player_stat.goals,
-            assists: 1, 
+            assists: 1,
             own_goals: 1,
             was_goalkeeper: player_stat.was_goalkeeper
-          } 
+          }
         }, format: :json
         
         # Should return error status
@@ -214,7 +236,11 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
   end
 
   describe '#destroy' do
-    let!(:player_stat) { FactoryBot.create(:player_stat, :with_player, :with_team, :with_match) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let!(:player_stat) { FactoryBot.create(:player_stat, player: FactoryBot.create(:player), team: team1, match: match) }
 
     it 'deletes the player stat' do
       expect {
@@ -226,9 +252,19 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
   end
 
   describe '#by_match' do
-    let(:match) { FactoryBot.create(:match, :with_round, :with_team_1, :with_team_2) }
-    let!(:stats_in_match) { FactoryBot.create_list(:player_stat, 3, :with_player, :with_team, match: match) }
-    let!(:stats_other) { FactoryBot.create_list(:player_stat, 2, :with_player, :with_team, :with_match) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let!(:stats_in_match) do
+      FactoryBot.create_list(:player_stat, 3, player: FactoryBot.create(:player), team: team1, match: match,
+                                           goals: 1, assists: 0, own_goals: 0, was_goalkeeper: false)
+    end
+    let!(:stats_other) do
+      other_match = FactoryBot.create(:match, round: round, team_1: team1, team_2: team2)
+      FactoryBot.create_list(:player_stat, 2, player: FactoryBot.create(:player), team: team2, match: other_match,
+                                           goals: 1, assists: 0, own_goals: 0, was_goalkeeper: false)
+    end
 
     it 'returns player stats for a specific match' do
       get :by_match, params: { match_id: match.id }, format: :json
@@ -309,11 +345,12 @@ RSpec.describe Api::V1::PlayerStatsController, type: :controller do
   end
 
   describe '#bulk_update' do
-    let(:match) { FactoryBot.create(:match, :with_round, :with_team_1, :with_team_2) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
     let(:player1) { FactoryBot.create(:player) }
     let(:player2) { FactoryBot.create(:player) }
-    let(:team1) { match.team_1 }
-    let(:team2) { match.team_2 }
 
     context 'with valid stats' do
       let(:valid_params) do

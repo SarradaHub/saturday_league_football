@@ -74,7 +74,7 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: 1, email: 'test.user@example.com' }
     })
     request.headers['Authorization'] = 'Bearer valid_token'
   end

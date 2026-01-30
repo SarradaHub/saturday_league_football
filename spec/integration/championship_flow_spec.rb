@@ -3,12 +3,15 @@
 require 'rails_helper'
 
 RSpec.describe 'Championship Flow Integration', type: :request do
+  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+
   before do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: current_user.external_id, email: current_user.email }
     })
+    allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
     @auth_header = { 'Authorization' => 'Bearer valid_token' }
   end
 
@@ -67,7 +70,7 @@ RSpec.describe 'Championship Flow Integration', type: :request do
 
       # Step 6: Verify presenters serialize correctly
       championship_presenter = ChampionshipPresenter.new(Championship.find(championship_id))
-      championship_json = championship_presenter.as_json
+      championship_json = championship_presenter.as_json(include_rounds: true, include_players: true)
 
       expect(championship_json[:id]).to eq(championship_id)
       expect(championship_json[:round_total]).to eq(2)

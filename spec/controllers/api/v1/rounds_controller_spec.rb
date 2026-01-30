@@ -3,17 +3,21 @@
 require 'rails_helper'
 
 RSpec.describe Api::V1::RoundsController, type: :controller do
+  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+  let(:championship) { FactoryBot.create(:championship, user: current_user) }
+
   before do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: current_user.external_id, email: current_user.email }
     })
+    allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
     request.headers['Authorization'] = 'Bearer valid_token'
   end
 
   describe '#index' do
-    let!(:rounds) { FactoryBot.create_list(:round, 5, :with_championship) }
+    let!(:rounds) { FactoryBot.create_list(:round, 5, championship: championship) }
 
     it 'lists all rounds' do
       get :index, params: { per_page: 100 }, format: :json
@@ -67,7 +71,7 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   end
 
   describe '#show' do
-    let(:round) { FactoryBot.create(:round, :with_championship) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
 
     it 'returns round details' do
       get :show, params: { id: round.id }, format: :json
@@ -90,7 +94,7 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   end
 
   describe '#create' do
-    let(:championship) { FactoryBot.create(:championship) }
+    let(:championship) { FactoryBot.create(:championship, user: current_user) }
 
     context 'with valid params' do
       let(:valid_params) do
@@ -136,7 +140,7 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   end
 
   describe '#update' do
-    let(:round) { FactoryBot.create(:round, :with_championship, name: 'Old Name') }
+    let(:round) { FactoryBot.create(:round, championship: championship, name: 'Old Name') }
 
     context 'with valid params' do
       it 'updates the round' do
@@ -161,7 +165,7 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   end
 
   describe '#destroy' do
-    let!(:round) { FactoryBot.create(:round, :with_championship) }
+    let!(:round) { FactoryBot.create(:round, championship: championship) }
 
     it 'deletes the round' do
       expect {
@@ -173,7 +177,7 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   end
 
   describe '#statistics' do
-    let(:round) { FactoryBot.create(:round, :with_championship) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
     let(:team1) { FactoryBot.create(:team, round: round) }
     let(:team2) { FactoryBot.create(:team, round: round) }
     let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }

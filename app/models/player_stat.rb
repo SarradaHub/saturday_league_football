@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 class PlayerStat < ApplicationRecord
-  belongs_to :player, counter_cache: true, dependent: :destroy
-  belongs_to :team, dependent: :destroy
-  belongs_to :match, dependent: :destroy
+  include SoftDeletable
+
+  belongs_to :player, counter_cache: true
+  belongs_to :team
+  belongs_to :match
 
   validates_presence_of :goals
   validates_presence_of :assists

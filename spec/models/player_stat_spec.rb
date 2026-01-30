@@ -12,7 +12,6 @@ RSpec.describe PlayerStat, type: :model do
   it { should validate_presence_of :assists }
   it { should validate_presence_of :own_goals }
   it { should be_valid }
-<<<<<<< HEAD
 
   describe 'assists rules' do
     let(:round) { FactoryBot.create(:round, :with_championship) }
@@ -44,6 +43,4 @@ RSpec.describe PlayerStat, type: :model do
       expect(stat2).to be_valid
     end
   end
-=======
->>>>>>> main
 end

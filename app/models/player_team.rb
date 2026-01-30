@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 class PlayerTeam < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :player
-  belongs_to :team
+  belongs_to :team, counter_cache: :players_count
 
   validate :team_has_capacity, on: :create
   before_destroy :ensure_team_remains_above_minimum
@@ -25,6 +27,7 @@ class PlayerTeam < ApplicationRecord
   end
 
   def ensure_team_remains_above_minimum
+    return if destroyed_by_association
     return unless team.present?
 
     championship = team.round&.championship

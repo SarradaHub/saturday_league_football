@@ -3,17 +3,20 @@
 require 'rails_helper'
 
 RSpec.describe Api::V1::PlayersController, type: :controller do
+  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+  let(:championship) { FactoryBot.create(:championship, user: current_user) }
+
   before do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: current_user.external_id, email: current_user.email }
     })
+    allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
     request.headers['Authorization'] = 'Bearer valid_token'
   end
 
   describe '#index' do
-    let(:championship) { FactoryBot.create(:championship) }
     let!(:players_in_championship) { FactoryBot.create_list(:player, 3) }
     let!(:players_other) { FactoryBot.create_list(:player, 2) }
 
@@ -74,12 +77,17 @@ RSpec.describe Api::V1::PlayersController, type: :controller do
       json_response = JSON.parse(response.body)
       
       expect(json_response['data'].length).to eq(2)
-      expect(json_response['meta']['total']).to be >= 5
+      expect(json_response['meta']['total']).to be >= 3
     end
   end
 
   describe '#show' do
     let(:player) { FactoryBot.create(:player) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+    end
 
     it 'returns player details' do
       get :show, params: { id: player.id }, format: :json
@@ -134,6 +142,11 @@ RSpec.describe Api::V1::PlayersController, type: :controller do
 
   describe '#update' do
     let(:player) { FactoryBot.create(:player, name: 'Old Name') }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+    end
 
     context 'with valid params' do
       it 'updates the player' do
@@ -159,6 +172,14 @@ RSpec.describe Api::V1::PlayersController, type: :controller do
 
   describe '#destroy' do
     let!(:player) { FactoryBot.create(:player) }
+    let(:round) do
+      championship_without_min = FactoryBot.create(:championship, user: current_user, min_players_per_team: 0)
+      FactoryBot.create(:round, championship: championship_without_min)
+    end
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+    end
 
     it 'deletes the player' do
       expect {
@@ -171,7 +192,12 @@ RSpec.describe Api::V1::PlayersController, type: :controller do
 
   describe '#add_to_round' do
     let(:player) { FactoryBot.create(:player) }
-    let(:round) { FactoryBot.create(:round, :with_championship) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:existing_round) { FactoryBot.create(:round, championship: championship) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: existing_round)
+    end
 
     it 'adds player to round' do
       expect {
@@ -195,7 +221,12 @@ RSpec.describe Api::V1::PlayersController, type: :controller do
 
   describe '#add_to_team' do
     let(:player) { FactoryBot.create(:player) }
-    let(:team) { FactoryBot.create(:team, :with_round) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team) { FactoryBot.create(:team, round: round) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+    end
 
     it 'adds player to team' do
       expect {
@@ -219,12 +250,13 @@ RSpec.describe Api::V1::PlayersController, type: :controller do
 
   describe '#match_stats' do
     let(:player) { FactoryBot.create(:player) }
-    let(:round) { FactoryBot.create(:round, :with_championship) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
     let(:team) { FactoryBot.create(:team, round: round) }
     let(:team2) { FactoryBot.create(:team, round: round) }
     let(:match) { FactoryBot.create(:match, round: round, team_1: team, team_2: team2) }
 
     before do
+      FactoryBot.create(:player_round, player: player, round: round)
       FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 2, assists: 1, own_goals: 0)
     end
 

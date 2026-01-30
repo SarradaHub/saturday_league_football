@@ -17,6 +17,11 @@ module Users
       # Update user attributes from IdentityService
       user.email = identity_user_data['email'] || identity_user_data[:email] || user.email
       user.is_admin = extract_admin_flag(identity_user_data)
+    if user.new_record?
+      password = SecureRandom.hex(16)
+      user.password = password
+      user.password_confirmation = password
+    end
 
       # Save user (will create or update)
       user.save! if user.changed?

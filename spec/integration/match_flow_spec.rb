@@ -3,17 +3,20 @@
 require 'rails_helper'
 
 RSpec.describe 'Match Flow Integration', type: :request do
+  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+
   before do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: current_user.external_id, email: current_user.email }
     })
+    allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
     @auth_header = { 'Authorization' => 'Bearer valid_token' }
   end
 
   describe 'Complete match flow' do
-    let(:championship) { FactoryBot.create(:championship) }
+    let(:championship) { FactoryBot.create(:championship, user: current_user) }
     let(:round) { FactoryBot.create(:round, championship: championship) }
     let(:team1) { FactoryBot.create(:team, round: round, name: 'Team A') }
     let(:team2) { FactoryBot.create(:team, round: round, name: 'Team B') }

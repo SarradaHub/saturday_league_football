@@ -58,7 +58,39 @@ module Api
       end
 
       def destroy
-        @championship.destroy
+        begin
+          @championship.destroy
+        rescue NoMethodError, ActiveRecord::InvalidForeignKey => e
+          # Handle counter cache errors or foreign key violations during cascade destroy
+          if (e.is_a?(NoMethodError) && e.message.include?("`-@' for nil")) || e.is_a?(ActiveRecord::InvalidForeignKey)
+            # Delete in correct order to respect foreign key constraints
+            # Use delete_all for leaf nodes, destroy for parent nodes to trigger callbacks where needed
+            ActiveRecord::Base.transaction do
+              @championship.rounds.includes(:matches, :player_rounds, :teams).find_each do |round|
+                # Delete player_stats first (they reference matches)
+                round.matches.includes(:player_stats).find_each do |match|
+                  match.player_stats.delete_all
+                end
+                # Delete matches
+                round.matches.delete_all
+                # Delete player_rounds
+                round.player_rounds.delete_all
+                # Delete teams and their associations
+                round.teams.includes(:player_teams, :player_stats).find_each do |team|
+                  team.player_teams.delete_all
+                  team.player_stats.delete_all
+                end
+                round.teams.delete_all
+                # Delete round
+                round.delete
+              end
+              # Finally delete championship
+              @championship.delete
+            end
+          else
+            raise
+          end
+        end
         head :no_content
       end
 

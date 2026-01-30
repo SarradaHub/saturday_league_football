@@ -51,7 +51,9 @@ class RoundTeamGenerator
   end
 
   def clear_memberships
-    PlayerTeam.where(team_id: round.teams.select(:id)).delete_all
+    team_ids = round.teams.select(:id)
+    PlayerTeam.where(team_id: team_ids).delete_all
+    Team.where(id: team_ids).update_all(players_count: 0)
   end
 
   def distribute_players(players)

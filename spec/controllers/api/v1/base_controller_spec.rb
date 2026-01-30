@@ -45,6 +45,10 @@ end
 
 # Test BaseController through a real controller that uses it
 RSpec.describe Api::V1::BaseController, type: :controller do
+  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+  let(:championship) { FactoryBot.create(:championship, user: current_user) }
+  let(:round) { FactoryBot.create(:round, championship: championship) }
+
   # Use TeamsController as it inherits from BaseController
   controller(Api::V1::TeamsController) do
   end
@@ -53,13 +57,14 @@ RSpec.describe Api::V1::BaseController, type: :controller do
     # Mock authentication
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
       valid: true,
-      user: { id: 1 }
+      user: { id: current_user.external_id, email: current_user.email }
     })
+    allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
     request.headers['Authorization'] = 'Bearer valid_token'
   end
 
   # Create test data
-  let!(:test_teams) { FactoryBot.create_list(:team, 10, :with_round) }
+  let!(:test_teams) { FactoryBot.create_list(:team, 10, round: round) }
 
   describe '#render_collection' do
     context 'with presenter_class' do
