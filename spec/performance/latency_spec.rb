@@ -4,7 +4,7 @@ return unless ENV['PERF_SPECS'] == '1'
 
 # rubocop:disable RSpec/MultipleMemoizedHelpers, RSpec/ScatteredLet
 
-RSpec.describe 'Latency thresholds for list and detail endpoints', type: :request do
+RSpec.describe 'Latency thresholds for list and detail endpoints', type: :request, slow: true do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:list_endpoints) do
     [

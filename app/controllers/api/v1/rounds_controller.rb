@@ -60,6 +60,26 @@ module Api
         render json: stats
       end
 
+      def suggest_next_match
+        round = find_round_for_sequence
+        suggestion = Rounds::NextMatchGenerator.call(round: round)
+        render json: suggestion
+      rescue StandardError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      end
+
+      def create_next_match
+        round = find_round_for_sequence
+        match = Rounds::NextMatchGenerator.call(
+          round: round,
+          winner_team_id: params[:winner_team_id],
+          create_match: true
+        )
+        render json: MatchPresenter.new(match).as_json, status: :created
+      rescue StandardError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      end
+
       private
 
       def set_round
@@ -97,6 +117,10 @@ module Api
 
       def round_params
         params.require(:round).permit(:name, :round_date, :championship_id)
+      end
+
+      def find_round_for_sequence
+        Rounds::FindQuery.new(id: params[:id], user_id: current_user.id).call
       end
     end
   end

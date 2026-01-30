@@ -24,7 +24,18 @@ RSpec.describe Paginatable, type: :controller do
   controller(PaginatableTestController) do
   end
 
-  before { FactoryBot.create_list(:team, 10) }
+  # Clean up once at the start to remove any data from other test files
+  # Then rely on transactional fixtures for isolation between tests
+  before(:all) do
+    Match.unscoped.delete_all
+    Team.unscoped.delete_all
+  end
+
+  # Create teams for each test - transactional fixtures will rollback automatically
+  # This avoids the expensive delete_all before each test
+  before do
+    FactoryBot.create_list(:team, 10)
+  end
 
   let(:json_response) { JSON.parse(response.body) }
 

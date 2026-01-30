@@ -4,7 +4,7 @@ require 'rails_helper'
 
 # rubocop:disable RSpec/MultipleMemoizedHelpers, RSpec/ExampleLength
 
-RSpec.describe 'API Flow Integration', type: :request do
+RSpec.describe 'API Flow Integration', type: :request, slow: true do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:auth_header) { { 'Authorization' => 'Bearer valid_token' } }
   let(:json_response) { JSON.parse(response.body) }
@@ -34,8 +34,8 @@ RSpec.describe 'API Flow Integration', type: :request do
         get "/api/v1/championships/#{championship_id}", headers: auth_header, as: :json
       end
 
-      it 'returns created status' do
-        expect(response).to have_http_status(:created)
+      it 'returns ok status for show' do
+        expect(response).to have_http_status(:ok)
       end
 
       it 'returns created championship id' do

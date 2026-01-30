@@ -40,10 +40,10 @@ RSpec.configure do |config|
     Rails.root.join('spec/fixtures')
   ]
 
-  # If you're not using ActiveRecord, or you'd prefer not to run each of your
-  # examples within a transaction, remove the following line or assign false
-  # instead of true.
-  config.use_transactional_fixtures = true
+  # Database Cleaner is used instead of transactional fixtures for better
+  # handling of integration tests that may need real database commits.
+  # See spec/support/database_cleaner.rb for configuration.
+  config.use_transactional_fixtures = false
 
   # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false
@@ -71,6 +71,12 @@ RSpec.configure do |config|
   # config.filter_gems_from_backtrace("gem name")
 
   config.include FactoryBot::Syntax::Methods
+
+  # Tag configuration for test performance optimization
+  # Use --tag ~slow to run only fast tests (excludes slow integration/performance tests)
+  # Use --tag slow to run only slow tests (integration and performance tests)
+  # Example: bundle exec rspec --tag ~slow
+  config.filter_run_excluding slow: true unless ENV['INCLUDE_SLOW_TESTS'] == '1'
 
   Shoulda::Matchers.configure do |config|
     config.integrate do |with|

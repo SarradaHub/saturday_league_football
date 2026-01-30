@@ -232,6 +232,35 @@ perform_get(:statistics, params: { id: round.id })
       expect(player_stats['assists'] || player_stats[:assists]).to eq(1)
     end
   end
+
+  describe '#suggest_next_match' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let!(:team_1) { FactoryBot.create(:team, round: round, created_at: 2.hours.ago) }
+    let!(:team_2) { FactoryBot.create(:team, round: round, created_at: 1.hour.ago) }
+
+    before { perform_post(:suggest_next_match, params: { id: round.id }) }
+
+    it 'returns suggested match' do
+      expect(response).to have_http_status(:ok)
+      expect(json_response['needs_winner_selection']).to be(false)
+      expect(json_response['suggested_match']['team_1']['id']).to eq(team_1.id)
+      expect(json_response['suggested_match']['team_2']['id']).to eq(team_2.id)
+    end
+  end
+
+  describe '#create_next_match' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let!(:team_1) { FactoryBot.create(:team, round: round, created_at: 2.hours.ago) }
+    let!(:team_2) { FactoryBot.create(:team, round: round, created_at: 1.hour.ago) }
+
+    before { perform_post(:create_next_match, params: { id: round.id }) }
+
+    it 'creates the match' do
+      expect(response).to have_http_status(:created)
+      expect(json_response['team_1']['id']).to eq(team_1.id)
+      expect(json_response['team_2']['id']).to eq(team_2.id)
+    end
+  end
 end
 
 # rubocop:enable RSpec/ScatteredSetup

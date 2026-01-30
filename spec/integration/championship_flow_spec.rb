@@ -4,7 +4,7 @@ require 'rails_helper'
 
 # rubocop:disable RSpec/MultipleMemoizedHelpers
 
-RSpec.describe 'Championship Flow Integration', type: :request do
+RSpec.describe 'Championship Flow Integration', type: :request, slow: true do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:auth_header) { { 'Authorization' => 'Bearer valid_token' } }
   let(:json_response) { JSON.parse(response.body) }
@@ -19,7 +19,7 @@ RSpec.describe 'Championship Flow Integration', type: :request do
   end
 
   describe 'Complete championship flow' do
-    let(:championship_id) do
+    let!(:championship_id) do
       post '/api/v1/championships', params: {
         championship: {
           name: 'Test Championship',
@@ -32,8 +32,8 @@ RSpec.describe 'Championship Flow Integration', type: :request do
       json_response['id']
     end
 
-    let(:round1) { FactoryBot.create(:round, championship_id: championship_id, name: 'Round 1') }
-    let(:round2) { FactoryBot.create(:round, championship_id: championship_id, name: 'Round 2') }
+    let!(:round1) { FactoryBot.create(:round, championship_id: championship_id, name: 'Round 1') }
+    let!(:round2) { FactoryBot.create(:round, championship_id: championship_id, name: 'Round 2') }
     let(:team1) { FactoryBot.create(:team, round: round1, name: 'Team A') }
     let(:team2) { FactoryBot.create(:team, round: round1, name: 'Team B') }
     let(:team3) { FactoryBot.create(:team, round: round2, name: 'Team C') }
@@ -47,6 +47,12 @@ RSpec.describe 'Championship Flow Integration', type: :request do
       FactoryBot.create(:player_round, player: players[1], round: round1)
       FactoryBot.create(:player_round, player: players[2], round: round2)
       FactoryBot.create(:player_round, player: players[3], round: round2)
+
+      # Reload championship to get updated counter cache
+      championship = Championship.find(championship_id)
+      Championship.reset_counters(championship_id, :rounds)
+      Championships::UpdatePlayersCount.call(championship: championship)
+      championship.reload
     end
 
     it 'creates championship via API' do

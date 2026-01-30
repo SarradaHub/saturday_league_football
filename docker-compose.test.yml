@@ -18,6 +18,8 @@ services:
       POSTGRES_HOST: db  # Use Docker service name, not localhost
       POSTGRES_DB: saturday_league_football_test
       PGDATABASE_TEST: saturday_league_football_test
+      # Allow DatabaseCleaner to work with DATABASE_URL in Docker (disable safeguard)
+      DATABASE_CLEANER_ALLOW_REMOTE_DATABASE_URL: "true"
       # Test environment optimizations
       RAILS_MAX_THREADS: 5
       WEB_CONCURRENCY: 1

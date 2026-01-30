@@ -23,6 +23,8 @@ Rails.application.routes.draw do
       resources :rounds, defaults: { format: :json } do
         member do
           get :statistics
+          post :suggest_next_match
+          post :create_next_match
         end
       end
       resources :matches, defaults: { format: :json } do

@@ -58,6 +58,9 @@ Rails.application.configure do
       Bullet.enable = true
       Bullet.bullet_logger = false
       Bullet.rails_logger = true
+      # Only raise on N+1 queries, not on "unused_eager_loading" warnings
+      # "unused_eager_loading" is a performance suggestion, not a critical error
+      # We'll handle this in spec/support/bullet.rb to only raise on N+1 queries
       Bullet.raise = true
     end
   end

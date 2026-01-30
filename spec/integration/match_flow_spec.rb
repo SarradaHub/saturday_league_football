@@ -6,7 +6,7 @@ require 'rails_helper'
 
 # rubocop:disable RSpec/ExampleLength
 
-RSpec.describe 'Match Flow Integration', type: :request do
+RSpec.describe 'Match Flow Integration', type: :request, slow: true do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:auth_header) { { 'Authorization' => 'Bearer valid_token' } }
   let(:json_response) { JSON.parse(response.body) }
@@ -21,8 +21,15 @@ RSpec.describe 'Match Flow Integration', type: :request do
   end
 
   describe 'Complete match flow' do
-    let(:championship) { FactoryBot.create(:championship, user: current_user) }
-    let(:match_id) do
+    let!(:championship) { FactoryBot.create(:championship, user: current_user) }
+    let!(:round) { FactoryBot.create(:round, championship: championship) }
+    let!(:teams) do
+      [
+        FactoryBot.create(:team, round: round, name: 'Team A'),
+        FactoryBot.create(:team, round: round, name: 'Team B')
+      ]
+    end
+    let!(:match_id) do
       post '/api/v1/matches', params: {
         match: {
           name: 'Match 1',
@@ -33,13 +40,6 @@ RSpec.describe 'Match Flow Integration', type: :request do
       }, headers: auth_header, as: :json
 
       json_response['id']
-    end
-    let(:round) { FactoryBot.create(:round, championship: championship) }
-    let(:teams) do
-      [
-        FactoryBot.create(:team, round: round, name: 'Team A'),
-        FactoryBot.create(:team, round: round, name: 'Team B')
-      ]
     end
     let(:players) do
       [
@@ -93,15 +93,17 @@ RSpec.describe 'Match Flow Integration', type: :request do
       finalize_match(match_id)
       # Team 1: 2 + 1 + 1 (own goal from team 2) = 4
       # Team 2: 1 + 0 = 1
-      expect(json_response['team_1_goals']).to eq(4)
-      expect(json_response['team_2_goals']).to eq(1)
+      finalize_response = JSON.parse(response.body)
+      expect(finalize_response['team_1_goals']).to eq(4)
+      expect(finalize_response['team_2_goals']).to eq(1)
     end
 
     it 'sets winning team' do
       create_stats(match_id)
       finalize_match(match_id)
-      expect(json_response['winning_team']).to be_present
-      expect(json_response['winning_team']['id']).to eq(teams.first.id)
+      finalize_response = JSON.parse(response.body)
+      expect(finalize_response['winning_team']).to be_present
+      expect(finalize_response['winning_team']['id']).to eq(teams.first.id)
     end
 
     it 'returns round statistics' do
@@ -118,7 +120,8 @@ RSpec.describe 'Match Flow Integration', type: :request do
       finalize_match(match_id)
       players.each { |player| FactoryBot.create(:player_round, player: player, round: round) }
       get "/api/v1/rounds/#{round.id}/statistics", headers: auth_header, as: :json
-      player1_stats = json_response[players[0].id.to_s]
+      stats_response = JSON.parse(response.body)
+      player1_stats = stats_response[players[0].id.to_s]
       expect(player1_stats).to be_present
       expect(player1_stats['goals']).to eq(2)
     end
@@ -128,7 +131,8 @@ RSpec.describe 'Match Flow Integration', type: :request do
       finalize_match(match_id)
       players.each { |player| FactoryBot.create(:player_round, player: player, round: round) }
       get "/api/v1/rounds/#{round.id}/statistics", headers: auth_header, as: :json
-      player1_stats = json_response[players[0].id.to_s]
+      stats_response = JSON.parse(response.body)
+      player1_stats = stats_response[players[0].id.to_s]
       expect(player1_stats['assists']).to eq(1)
     end
   end

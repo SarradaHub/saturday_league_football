@@ -2,6 +2,8 @@
 
 This document is generated from presenters/serializers and describes the JSON shape exposed by the API.
 
+> For architecture details on presenters and serializers, see [Architecture](architecture.md).
+
 Generated at: 2026-01-29 00:00:00 UTC
 
 ## Common query params
