@@ -39,6 +39,8 @@ The app runs on `http://localhost:3000` with Rails server, Vite, and background 
 ## Testing and Quality
 
 - Run tests with `bin/rspec`.
+- Run latency checks with `PERF_SPECS=1 bin/rspec spec/performance/latency_spec.rb`.
+- Generate API reference with `bin/rails api_docs:generate` (updates `docs/api_reference.md`).
 - Lint the codebase with `bin/rubocop`.
 - Security scans are available through `bin/brakeman`.
 

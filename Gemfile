@@ -52,12 +52,12 @@ group :development, :test do
   gem 'rspec-mocks'
   gem 'rspec-rails', '~> 8.0.2'
   gem 'simplecov'
+  gem 'bullet'
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem 'web-console'
-  gem 'bullet'
 end
 
 group :test do

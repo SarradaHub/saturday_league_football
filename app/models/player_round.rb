@@ -6,8 +6,10 @@ class PlayerRound < ApplicationRecord
   belongs_to :player
   belongs_to :round, counter_cache: :players_count
 
-  after_commit :auto_balance_round_teams, on: %i[create destroy]
-  after_commit :update_championship_players_count, on: %i[create destroy]
+  after_commit :auto_balance_round_teams, on: :create
+  after_commit :update_championship_players_count, on: :create
+  after_destroy :auto_balance_round_teams
+  after_destroy :update_championship_players_count
 
   private
 

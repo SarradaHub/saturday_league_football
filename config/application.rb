@@ -33,8 +33,8 @@ module SaturdayLeagueFootball
       Rails.root.join('app', folder).to_s
     end
 
-    config.autoload_paths = config.autoload_paths.to_a + domain_subdirectories
-    config.eager_load_paths = config.eager_load_paths.to_a + domain_subdirectories
+    config.autoload_paths = config.autoload_paths.to_a.dup + domain_subdirectories
+    config.eager_load_paths = config.eager_load_paths.to_a.dup + domain_subdirectories
 
     config.generators do |g|
       g.test_framework :rspec,
