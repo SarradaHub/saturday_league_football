@@ -21,9 +21,9 @@ module Api
           base_relation = if collection.is_a?(ActiveRecord::Relation)
                             # Remove limit and offset to get total count
                             collection.except(:limit, :offset)
-                          else
+          else
                             collection.class.all
-                          end
+          end
         end
 
         # Get total count before pagination
@@ -35,11 +35,11 @@ module Api
         # Serialize items
         serialized_items = if serializer_class
                              items.map { |item| serializer_class.new(item).as_json }
-                           elsif presenter_class
+        elsif presenter_class
                              items.map { |item| presenter_class.new(item).as_json }
-                           else
+        else
                              items.map(&:as_json)
-                           end
+        end
 
         # Apply sparse fieldsets
         allowed_fields = parse_fields

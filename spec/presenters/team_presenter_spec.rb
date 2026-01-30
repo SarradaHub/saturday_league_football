@@ -2,6 +2,8 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/MultipleMemoizedHelpers, RSpec/MultipleExpectations, RSpec/ExampleLength, RSpec/RepeatedExample
+
 RSpec.describe TeamPresenter do
   subject(:presenter) { described_class.new(team) }
 
@@ -33,16 +35,23 @@ RSpec.describe TeamPresenter do
   end
 
   describe '#as_json' do
+    let(:json) { presenter.as_json }
+
+
     context 'with empty relationships' do
       it 'returns correct structure' do
-        json = presenter.as_json
-
         expect(json).to be_a(Hash)
         expect(json[:id]).to eq(team.id)
         expect(json[:name]).to eq('Test Team')
         expect(json[:round_id]).to eq(round.id)
+      end
+
+      it 'includes timestamps' do
         expect(json[:created_at]).to eq(team.created_at)
         expect(json[:updated_at]).to eq(team.updated_at)
+      end
+
+      it 'returns empty relationships' do
         expect(json[:matches]).to eq([])
         expect(json[:players]).to eq([])
       end
@@ -60,17 +69,19 @@ RSpec.describe TeamPresenter do
       end
 
       it 'includes matches in json' do
-        json = presenter.as_json
-
         expect(json[:matches]).to be_an(Array)
         expect(json[:matches].length).to eq(2)
-        expect(json[:matches].first).to be_a(Hash)
+      end
+
+      it 'includes match ids' do
         expect(json[:matches].first[:id]).to be_in([match1.id, match2.id])
       end
 
-      it 'serializes matches using MatchPresenter' do
-        json = presenter.as_json
+      it 'serializes matches as hashes' do
+        expect(json[:matches].first).to be_a(Hash)
+      end
 
+      it 'serializes matches using MatchPresenter' do
         match_json = json[:matches].first
         expect(match_json).to have_key(:id)
         expect(match_json).to have_key(:name)
@@ -84,17 +95,19 @@ RSpec.describe TeamPresenter do
       end
 
       it 'includes players in json' do
-        json = presenter.as_json
-
         expect(json[:players]).to be_an(Array)
         expect(json[:players].length).to eq(2)
-        expect(json[:players].first).to be_a(Hash)
+      end
+
+      it 'includes player ids' do
         expect(json[:players].map { |p| p[:id] }).to contain_exactly(player1.id, player2.id)
       end
 
-      it 'serializes players using PlayerPresenter' do
-        json = presenter.as_json
+      it 'serializes players as hashes' do
+        expect(json[:players].first).to be_a(Hash)
+      end
 
+      it 'serializes players using PlayerPresenter' do
         player_json = json[:players].first
         expect(player_json).to have_key(:id)
         expect(player_json).to have_key(:name)
@@ -107,8 +120,6 @@ RSpec.describe TeamPresenter do
 
         player_team2 = PlayerTeam.find_by(team: team, player: player2)
         player_team2.update(created_at: 1.day.ago)
-
-        json = presenter.as_json
 
         # Should be ordered by player_teams.created_at
         expect(json[:players].first[:id]).to eq(player1.id)
@@ -127,10 +138,11 @@ RSpec.describe TeamPresenter do
       end
 
       it 'includes both matches and players' do
-        json = presenter.as_json
-
         expect(json[:matches]).to be_an(Array)
         expect(json[:matches].length).to eq(1)
+      end
+
+      it 'includes players when matches exist' do
         expect(json[:players]).to be_an(Array)
         expect(json[:players].length).to eq(1)
       end
@@ -142,9 +154,11 @@ RSpec.describe TeamPresenter do
     let(:team2) { FactoryBot.create(:team, round: round) }
     let(:match1) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
     let(:match2) { FactoryBot.create(:match, round: round, team_1: team2, team_2: team1) }
-    let(:other_team1) { FactoryBot.create(:team, round: round) }
-    let(:other_team2) { FactoryBot.create(:team, round: round) }
-    let(:other_match) { FactoryBot.create(:match, round: round, team_1: other_team1, team_2: other_team2) }
+    let(:other_match) do
+      other_team1 = FactoryBot.create(:team, round: round)
+      other_team2 = FactoryBot.create(:team, round: round)
+      FactoryBot.create(:match, round: round, team_1: other_team1, team_2: other_team2)
+    end
 
     before do
       match1
@@ -157,12 +171,17 @@ RSpec.describe TeamPresenter do
 
       expect(matches.length).to eq(2)
       expect(matches.map(&:id)).to contain_exactly(match1.id, match2.id)
+    end
+
+    it 'excludes matches from other teams' do
+      matches = presenter.matches.to_a
       expect(matches.map(&:id)).not_to include(other_match.id)
     end
 
     it 'uses Teams::MatchesQuery' do
-      expect(Teams::MatchesQuery).to receive(:call).with(team: team).and_call_original
+      allow(Teams::MatchesQuery).to receive(:call).and_call_original
       presenter.matches
+      expect(Teams::MatchesQuery).to have_received(:call).with(team: team)
     end
   end
 
@@ -177,6 +196,10 @@ RSpec.describe TeamPresenter do
 
       expect(players).to be_an(Array)
       expect(players.length).to eq(2)
+    end
+
+    it 'returns the expected player ids' do
+      players = presenter.players
       expect(players.map(&:id)).to contain_exactly(player1.id, player2.id)
     end
 
@@ -202,3 +225,5 @@ RSpec.describe TeamPresenter do
     end
   end
 end
+
+# rubocop:enable RSpec/MultipleMemoizedHelpers, RSpec/MultipleExpectations, RSpec/ExampleLength, RSpec/RepeatedExample

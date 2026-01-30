@@ -1,5 +1,7 @@
 require 'rails_helper'
 
+# rubocop:disable RSpec/MultipleMemoizedHelpers, RSpec/LetSetup, RSpec/ExampleLength
+
 RSpec.describe 'API contracts for core resources', type: :request do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let!(:championship) { FactoryBot.create(:championship, user: current_user) }
@@ -69,3 +71,5 @@ RSpec.describe 'API contracts for core resources', type: :request do
     expect_show_contract("/api/v1/player_stats/#{player_stat.id}", %w[id goals assists own_goals was_goalkeeper match_id team_id player_id created_at updated_at])
   end
 end
+
+# rubocop:enable RSpec/MultipleMemoizedHelpers, RSpec/LetSetup, RSpec/ExampleLength

@@ -23,7 +23,7 @@ RSpec.describe Matches::Finalize do
 
       it 'calculates goals correctly' do
         result = call_result
-        
+
         expect(result).to eq(match)
         match.reload
         expect(match.winning_team_id).to eq(team1.id)
@@ -40,7 +40,7 @@ RSpec.describe Matches::Finalize do
       it 'sets team2 as winner' do
         call_result
         match.reload
-        
+
         expect(match.winning_team_id).to eq(team2.id)
         expect(match.draw).to be false
       end
@@ -55,7 +55,7 @@ RSpec.describe Matches::Finalize do
       it 'marks match as draw' do
         call_result
         match.reload
-        
+
         expect(match.winning_team_id).to be_nil
         expect(match.draw).to be true
       end
@@ -70,7 +70,7 @@ RSpec.describe Matches::Finalize do
       it 'includes own goals in team1 score' do
         call_result
         match.reload
-        
+
         # team1 should have 2 goals (1 goal + 1 own goal from team2)
         # team2 should have 0 goals (0 goals + 0 own goals from team1)
         expect(match.winning_team_id).to eq(team1.id)
@@ -79,20 +79,19 @@ RSpec.describe Matches::Finalize do
     end
 
     context 'with multiple players scoring' do
-      let(:player3) { FactoryBot.create(:player) }
-      let(:player4) { FactoryBot.create(:player) }
+      let(:extra_players) { FactoryBot.create_list(:player, 2) }
 
       before do
         FactoryBot.create(:player_stat, player: player1, team: team1, match: match, goals: 2, assists: 0, own_goals: 0)
-        FactoryBot.create(:player_stat, player: player3, team: team1, match: match, goals: 1, assists: 1, own_goals: 0)
+        FactoryBot.create(:player_stat, player: extra_players.first, team: team1, match: match, goals: 1, assists: 1, own_goals: 0)
         FactoryBot.create(:player_stat, player: player2, team: team2, match: match, goals: 1, assists: 0, own_goals: 0)
-        FactoryBot.create(:player_stat, player: player4, team: team2, match: match, goals: 0, assists: 0, own_goals: 1)
+        FactoryBot.create(:player_stat, player: extra_players.last, team: team2, match: match, goals: 0, assists: 0, own_goals: 1)
       end
 
       it 'sums all goals correctly' do
         call_result
         match.reload
-        
+
         # team1: 2 + 1 = 3 goals, team2: 1 + 0 = 1 goal (plus 1 own goal for team1 = 2 total for team1)
         # Actually: team1 gets own goals from team2, so team1 = 3 + 1 = 4, team2 = 1
         expect(match.winning_team_id).to eq(team1.id)
@@ -106,8 +105,7 @@ RSpec.describe Matches::Finalize do
 
       it 'handles blank team gracefully' do
         # Match model requires team_1/team_2; stub team_1 as nil to exercise calculate_goals_for(team.blank?) branch
-        allow(match).to receive(:team_1).and_return(nil)
-        allow(match).to receive(:team_1_id).and_return(nil)
+        allow(match).to receive_messages(team_1: nil, team_1_id: nil)
 
         call_result
         match.reload
@@ -122,7 +120,7 @@ RSpec.describe Matches::Finalize do
       it 'marks as draw' do
         call_result
         match.reload
-        
+
         expect(match.winning_team_id).to be_nil
         expect(match.draw).to be true
       end

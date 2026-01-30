@@ -6,6 +6,8 @@ RSpec.describe RoundSerializer do
   describe '#as_json' do
     subject(:serializer) { described_class.new(round) }
 
+    let(:json) { serializer.as_json }
+
     let(:championship) { FactoryBot.create(:championship) }
     let(:round_date) { Date.new(2025, 3, 15) }
     let(:round) do
@@ -17,14 +19,21 @@ RSpec.describe RoundSerializer do
       )
     end
 
-    it 'serializes all fields correctly' do
-      json = serializer.as_json
-
+    it 'serializes as a hash' do
       expect(json).to be_a(Hash)
+    end
+
+    it 'serializes identifiers' do
       expect(json[:id]).to eq(round.id)
+      expect(json[:championship_id]).to eq(championship.id)
+    end
+
+    it 'serializes name and date' do
       expect(json[:name]).to eq('Round 1')
       expect(json[:round_date]).to eq(round_date)
-      expect(json[:championship_id]).to eq(championship.id)
+    end
+
+    it 'serializes timestamps' do
       expect(json[:created_at]).to eq(round.created_at)
       expect(json[:updated_at]).to eq(round.updated_at)
     end
@@ -33,7 +42,6 @@ RSpec.describe RoundSerializer do
       let(:round_date) { Date.new(2025, 12, 31) }
 
       it 'serializes date correctly' do
-        json = serializer.as_json
         expect(json[:round_date]).to eq(Date.new(2025, 12, 31))
       end
     end
@@ -42,16 +50,16 @@ RSpec.describe RoundSerializer do
       let(:round_date) { Date.new(2026, 1, 1) }
 
       it 'serializes future date correctly' do
-        json = serializer.as_json
         expect(json[:round_date]).to eq(Date.new(2026, 1, 1))
       end
     end
 
     it 'includes timestamps' do
-      json = serializer.as_json
-
       expect(json).to have_key(:created_at)
       expect(json).to have_key(:updated_at)
+    end
+
+    it 'returns timestamp types' do
       expect(json[:created_at]).to be_a(ActiveSupport::TimeWithZone)
       expect(json[:updated_at]).to be_a(ActiveSupport::TimeWithZone)
     end

@@ -34,40 +34,45 @@ RSpec.describe ChampionshipPresenter do
     let(:round2) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 15)) }
     let(:player1) { FactoryBot.create(:player) }
     let(:player2) { FactoryBot.create(:player) }
+    let(:json) { presenter.as_json(include_rounds: true, include_players: true) }
 
     before do
       FactoryBot.create(:player_round, player: player1, round: round1)
       FactoryBot.create(:player_round, player: player2, round: round2)
     end
 
-    it 'returns complete json structure' do
-      json = presenter.as_json(include_rounds: true, include_players: true)
-
+    it 'returns a hash with identifiers' do
       expect(json).to be_a(Hash)
       expect(json[:id]).to eq(championship.id)
+    end
+
+    it 'includes name and description' do
       expect(json[:name]).to eq(championship.name)
       expect(json[:description]).to eq(championship.description)
+    end
+
+    it 'returns totals' do
       expect(json[:total_players]).to eq(2)
       expect(json[:round_total]).to eq(2)
+    end
+
+    it 'returns timestamps' do
       expect(json[:created_at]).to eq(championship.created_at)
       expect(json[:updated_at]).to eq(championship.updated_at)
+    end
+
+    it 'includes rounds and players arrays' do
       expect(json[:rounds]).to be_an(Array)
       expect(json[:players]).to be_an(Array)
     end
 
     it 'includes serialized rounds' do
-      json = presenter.as_json(include_rounds: true, include_players: true)
-
       expect(json[:rounds].length).to eq(2)
-      expect(json[:rounds].first).to be_a(Hash)
       expect(json[:rounds].first[:id]).to be_in([round1.id, round2.id])
     end
 
     it 'includes serialized players' do
-      json = presenter.as_json(include_rounds: true, include_players: true)
-
       expect(json[:players].length).to eq(2)
-      expect(json[:players].first).to be_a(Hash)
       expect(json[:players].map { |p| p[:id] }).to contain_exactly(player1.id, player2.id)
     end
   end
@@ -127,17 +132,22 @@ RSpec.describe ChampionshipPresenter do
   end
 
   describe '#rounds' do
-    let!(:round1) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 15)) }
-    let!(:round2) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 1)) }
-    let!(:round3) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 10)) }
+    let(:round1) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 15)) }
+    let(:round2) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 1)) }
+    let(:round3) { FactoryBot.create(:round, championship: championship, round_date: Date.new(2025, 1, 10)) }
+    let(:expected_round_dates) do
+      [Date.new(2025, 1, 1), Date.new(2025, 1, 10), Date.new(2025, 1, 15)]
+    end
+
+    before do
+      round1
+      round2
+      round3
+    end
 
     it 'returns rounds ordered by round_date ascending' do
       rounds = presenter.rounds.to_a
-      expect(rounds.map(&:round_date)).to eq([
-        Date.new(2025, 1, 1),
-        Date.new(2025, 1, 10),
-        Date.new(2025, 1, 15)
-      ])
+      expect(rounds.map(&:round_date)).to eq(expected_round_dates)
     end
   end
 
@@ -163,11 +173,17 @@ RSpec.describe ChampionshipPresenter do
 
   describe '#serialized_rounds' do
     let!(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:serialized) { presenter.send(:serialized_rounds) }
 
     it 'serializes rounds using RoundSerializer' do
-      serialized = presenter.send(:serialized_rounds)
       expect(serialized).to be_an(Array)
+    end
+
+    it 'returns one round' do
       expect(serialized.length).to eq(1)
+    end
+
+    it 'includes round fields' do
       expect(serialized.first).to be_a(Hash)
       expect(serialized.first[:id]).to eq(round.id)
       expect(serialized.first[:name]).to eq(round.name)
@@ -177,14 +193,17 @@ RSpec.describe ChampionshipPresenter do
   describe '#serialized_players' do
     let(:round) { FactoryBot.create(:round, championship: championship) }
     let(:player) { FactoryBot.create(:player) }
+    let(:serialized) { presenter.send(:serialized_players) }
 
     before do
       FactoryBot.create(:player_round, player: player, round: round)
     end
 
     it 'serializes players using PlayerPresenter' do
-      serialized = presenter.send(:serialized_players)
       expect(serialized).to be_an(Array)
+    end
+
+    it 'includes player fields' do
       expect(serialized.first).to be_a(Hash)
       expect(serialized.first[:id]).to eq(player.id)
       expect(serialized.first[:name]).to eq(player.name)
@@ -192,10 +211,14 @@ RSpec.describe ChampionshipPresenter do
   end
 
   context 'with empty championship' do
-    it 'handles championship without rounds' do
-      json = presenter.as_json(include_rounds: true, include_players: true)
+    let(:json) { presenter.as_json(include_rounds: true, include_players: true) }
+
+    it 'returns zero totals' do
       expect(json[:round_total]).to eq(0)
       expect(json[:total_players]).to eq(0)
+    end
+
+    it 'returns empty collections' do
       expect(json[:rounds]).to eq([])
       expect(json[:players]).to eq([])
     end
@@ -207,12 +230,19 @@ RSpec.describe ChampionshipPresenter do
       FactoryBot.create(:round, championship: championship)
     end
 
-    it 'returns round_total > 0, total_players 0, non-empty rounds, empty players' do
-      json = presenter.as_json(include_rounds: true, include_players: true)
+    let(:json) { presenter.as_json(include_rounds: true, include_players: true) }
+
+    it 'returns round and player totals' do
       expect(json[:round_total]).to eq(2)
       expect(json[:total_players]).to eq(0)
+    end
+
+    it 'returns rounds collection' do
       expect(json[:rounds]).to be_an(Array)
       expect(json[:rounds].length).to eq(2)
+    end
+
+    it 'returns empty players collection' do
       expect(json[:players]).to eq([])
     end
   end
@@ -220,17 +250,23 @@ RSpec.describe ChampionshipPresenter do
   context 'with one round and one player' do
     let!(:round) { FactoryBot.create(:round, championship: championship) }
     let!(:player) { FactoryBot.create(:player) }
+    let(:json) { presenter.as_json(include_rounds: true, include_players: true) }
 
     before do
       FactoryBot.create(:player_round, player: player, round: round)
     end
 
-    it 'exercises serialized_rounds and serialized_players with single-element collections' do
-      json = presenter.as_json(include_rounds: true, include_players: true)
+    it 'returns totals for single-element collections' do
       expect(json[:round_total]).to eq(1)
       expect(json[:total_players]).to eq(1)
+    end
+
+    it 'returns single round and player' do
       expect(json[:rounds].length).to eq(1)
       expect(json[:players].length).to eq(1)
+    end
+
+    it 'returns round and player ids' do
       expect(json[:rounds].first[:id]).to eq(round.id)
       expect(json[:players].first[:id]).to eq(player.id)
     end

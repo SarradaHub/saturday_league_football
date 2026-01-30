@@ -39,7 +39,7 @@ class Match < ApplicationRecord
     return unless round_id.present?
     return if destroyed_by_association
     return if round&.destroyed? || round&.marked_for_destruction?
-    
+
     begin
       # Call the original method if it exists
       super if defined?(super)
@@ -52,5 +52,4 @@ class Match < ApplicationRecord
       end
     end
   end
-
 end

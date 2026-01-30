@@ -18,16 +18,19 @@ RSpec.describe Rounds::FindQuery do
         result = query_result
         expect(result.id).to eq(round.id)
         expect(result.name).to eq(round.name)
+      end
+
+      it 'returns championship_id' do
+        result = query_result
         expect(result.championship_id).to eq(round.championship_id)
       end
 
       it 'uses CollectionQuery to find the round' do
         # Verify that CollectionQuery is called with correct relation
         # The actual implementation will call .first! on the result
-        expect(Rounds::CollectionQuery).to receive(:new).with(relation: Round.where(id: round_id), user_id: nil).and_call_original
-        
-        result = query_result
-        expect(result).to eq(round)
+        allow(Rounds::CollectionQuery).to receive(:new).and_call_original
+        query_result
+        expect(Rounds::CollectionQuery).to have_received(:new).with(relation: Round.where(id: round_id), user_id: nil)
       end
     end
 

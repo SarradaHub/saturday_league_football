@@ -88,14 +88,14 @@ module SoftDeletable
       # Get dependent records - use with_deleted if association model has SoftDeletable
       dependent_class = association.klass
       base_relation = send(association_name)
-      
+
       # If dependent model has SoftDeletable, include soft-deleted records in cascade
       if dependent_class.included_modules.include?(SoftDeletable)
         dependent_records = base_relation.with_deleted
       else
         dependent_records = base_relation
       end
-      
+
       next if dependent_records.empty?
 
       if dependent_class.included_modules.include?(SoftDeletable)

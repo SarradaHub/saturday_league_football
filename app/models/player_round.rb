@@ -25,7 +25,7 @@ class PlayerRound < ApplicationRecord
     return if destroyed_by_association
     return unless round.present?
     return if round.destroyed? || round.marked_for_destruction?
-    
+
     championship = round.championship
     return unless championship.present?
     return if championship.destroyed? || championship.marked_for_destruction?

@@ -2,6 +2,8 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/ExampleLength
+
 RSpec.describe Championships::FindQuery do
   describe '.call' do
     subject(:query_result) { described_class.call(id: championship_id) }
@@ -18,20 +20,25 @@ RSpec.describe Championships::FindQuery do
         result = query_result
         expect(result.id).to eq(championship.id)
         expect(result.name).to eq(championship.name)
+      end
+
+      it 'returns the description' do
+        result = query_result
         expect(result.description).to eq(championship.description)
       end
 
       it 'uses CollectionQuery to find the championship' do
         # Verify that CollectionQuery is called with correct relation and includes
         # The actual implementation will call .first! on the result
-        expect(Championships::CollectionQuery).to receive(:new).with(
+        allow(Championships::CollectionQuery).to receive(:new).and_call_original
+
+        query_result
+
+        expect(Championships::CollectionQuery).to have_received(:new).with(
           relation: Championship.where(id: championship_id),
           includes: [],
           user_id: nil
-        ).and_call_original
-
-        result = query_result
-        expect(result).to eq(championship)
+        )
       end
     end
 
@@ -52,3 +59,5 @@ RSpec.describe Championships::FindQuery do
     end
   end
 end
+
+# rubocop:enable RSpec/ExampleLength

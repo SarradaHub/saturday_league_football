@@ -2,6 +2,8 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/NestedGroups, RSpec/MultipleMemoizedHelpers, RSpec/ExampleLength, RSpec/MultipleExpectations
+
 RSpec.describe PlayerStats::CollectionQuery do
   describe '.call' do
     subject(:query_result) { described_class.new(**params).call }
@@ -210,3 +212,5 @@ RSpec.describe PlayerStats::CollectionQuery do
     end
   end
 end
+
+# rubocop:enable RSpec/NestedGroups, RSpec/MultipleMemoizedHelpers, RSpec/ExampleLength, RSpec/MultipleExpectations

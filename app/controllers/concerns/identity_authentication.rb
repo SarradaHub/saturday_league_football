@@ -10,7 +10,7 @@ module IdentityAuthentication
   private
 
   def authenticate_user
-    Rails.logger.info "=== AUTHENTICATE_USER CALLED ==="
+    Rails.logger.info '=== AUTHENTICATE_USER CALLED ==='
     Rails.logger.info "Request path: #{request.path}"
     Rails.logger.info "Request headers keys: #{request.headers.to_h.keys.grep(/auth/i).inspect}"
     Rails.logger.info "Authorization header value: #{request.headers['Authorization']}"
@@ -26,7 +26,7 @@ module IdentityAuthentication
       return
     end
 
-    Rails.logger.debug "Local token validation failed, trying IdentityService"
+    Rails.logger.debug 'Local token validation failed, trying IdentityService'
 
     # If local validation fails, try IdentityService
     result = IdentityServiceClient.validate_token(token)
@@ -41,7 +41,7 @@ module IdentityAuthentication
         Rails.logger.info "IdentityService token validated successfully for user: #{local_user.id}"
         @current_user = local_user
       else
-        Rails.logger.error "Failed to sync user from IdentityService"
+        Rails.logger.error 'Failed to sync user from IdentityService'
         render_unauthorized
       end
     else

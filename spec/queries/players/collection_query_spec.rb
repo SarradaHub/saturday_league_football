@@ -2,11 +2,14 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/NestedGroups, RSpec/MultipleMemoizedHelpers, RSpec/ExampleLength, RSpec/MultipleExpectations
+
 RSpec.describe Players::CollectionQuery do
   describe '.call' do
     subject(:query_result) { described_class.new(**params).call }
 
     let(:championship1) { FactoryBot.create(:championship) }
+    let(:params) { {} }
     let(:championship2) { FactoryBot.create(:championship) }
     let(:round1) { FactoryBot.create(:round, championship: championship1) }
     let(:round2) { FactoryBot.create(:round, championship: championship1) }
@@ -26,7 +29,6 @@ RSpec.describe Players::CollectionQuery do
       # player4 not in any championship
     end
 
-    let(:params) { {} }
 
     context 'with default parameters' do
       it 'returns all players ordered by name' do
@@ -214,3 +216,5 @@ RSpec.describe Players::CollectionQuery do
     end
   end
 end
+
+# rubocop:enable RSpec/NestedGroups, RSpec/MultipleMemoizedHelpers, RSpec/ExampleLength, RSpec/MultipleExpectations

@@ -77,9 +77,14 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
       user: { id: 1, email: 'test.user@example.com' }
     })
     request.headers['Authorization'] = 'Bearer valid_token'
+    FactoryBot.create_list(:team, 10, :with_round)
   end
 
-  let!(:test_teams) { FactoryBot.create_list(:team, 10, :with_round) }
+  let(:json_response) { JSON.parse(response.body) }
+
+  def perform_request(action, params: {})
+    get action, params: params, format: :json
+  end
 
   describe '#render_collection' do
     context 'with serializer_class' do
@@ -87,20 +92,22 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_with_serializer' => 'test_application#test_render_collection_with_serializer'
         end
+
+        perform_request(:test_render_collection_with_serializer)
       end
 
-      it 'serializes items using serializer_class' do
-        get :test_render_collection_with_serializer, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'returns data array' do
         expect(json_response).to have_key('data')
         expect(json_response['data']).to be_an(Array)
-        if json_response['data'].any?
-          expect(json_response['data'].first).to have_key('id')
-          expect(json_response['data'].first).to have_key('name')
-        end
+      end
+
+      it 'includes id and name in items' do
+        expect(json_response['data'].first).to have_key('id')
+        expect(json_response['data'].first).to have_key('name')
       end
     end
 
@@ -109,20 +116,22 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_with_presenter' => 'test_application#test_render_collection_with_presenter'
         end
+
+        perform_request(:test_render_collection_with_presenter)
       end
 
-      it 'serializes items using presenter_class' do
-        get :test_render_collection_with_presenter, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'returns data array' do
         expect(json_response).to have_key('data')
         expect(json_response['data']).to be_an(Array)
-        if json_response['data'].any?
-          expect(json_response['data'].first).to have_key('id')
-          expect(json_response['data'].first).to have_key('name')
-        end
+      end
+
+      it 'includes id and name in items' do
+        expect(json_response['data'].first).to have_key('id')
+        expect(json_response['data'].first).to have_key('name')
       end
     end
 
@@ -131,14 +140,15 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_without_serializer_or_presenter' => 'test_application#test_render_collection_without_serializer_or_presenter'
         end
+
+        perform_request(:test_render_collection_without_serializer_or_presenter)
       end
 
-      it 'serializes items using as_json' do
-        get :test_render_collection_without_serializer_or_presenter, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'returns data array' do
         expect(json_response).to have_key('data')
         expect(json_response['data']).to be_an(Array)
       end
@@ -149,17 +159,21 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_with_base_relation_provided' => 'test_application#test_render_collection_with_base_relation_provided'
         end
+
+        perform_request(:test_render_collection_with_base_relation_provided)
       end
 
-      it 'uses provided base_relation for count' do
-        get :test_render_collection_with_base_relation_provided, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'uses provided base_relation for total' do
         # Should use the provided base_relation (all teams) not the limited collection
         expect(json_response['meta']['total']).to be >= 10
-        expect(json_response['data'].length).to eq(5) # Limited collection
+      end
+
+      it 'returns limited collection' do
+        expect(json_response['data'].length).to eq(5)
       end
     end
 
@@ -168,17 +182,21 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_without_base_relation_relation' => 'test_application#test_render_collection_without_base_relation_relation'
         end
+
+        perform_request(:test_render_collection_without_base_relation_relation)
+      end
+
+      it 'returns ok' do
+        expect(response).to have_http_status(:ok)
       end
 
       it 'derives base_relation from collection by removing limit and offset' do
-        get :test_render_collection_without_base_relation_relation, format: :json
-
-        expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
-
         # Should count all teams, not just the limited ones
         expect(json_response['meta']['total']).to be >= 10
-        expect(json_response['data'].length).to eq(5) # Limited collection
+      end
+
+      it 'returns limited collection' do
+        expect(json_response['data'].length).to eq(5)
       end
     end
 
@@ -187,17 +205,21 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_without_base_relation_array' => 'test_application#test_render_collection_without_base_relation_array'
         end
+
+        perform_request(:test_render_collection_without_base_relation_array)
       end
 
-      it 'derives base_relation using collection.first.class.all when collection is array of ActiveRecord objects' do
-        get :test_render_collection_without_base_relation_array, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'derives base_relation using collection.first.class.all' do
         # Should count all teams (collection.first.class.all when collection is array)
         # The collection is an array, so base_relation will be Team.all
         expect(json_response['meta']['total']).to be >= 10
+      end
+
+      it 'returns data array' do
         expect(json_response['data']).to be_an(Array)
       end
     end
@@ -207,15 +229,19 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_with_array_base_relation' => 'test_application#test_render_collection_with_array_base_relation'
         end
+
+        perform_request(:test_render_collection_with_array_base_relation)
+      end
+
+      it 'returns ok' do
+        expect(response).to have_http_status(:ok)
       end
 
       it 'uses size instead of count' do
-        get :test_render_collection_with_array_base_relation, format: :json
-
-        expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
-
         expect(json_response['meta']['total']).to be >= 10
+      end
+
+      it 'returns limited collection' do
         expect(json_response['data'].length).to eq(3)
       end
     end
@@ -225,17 +251,16 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_with_sparse_fieldsets' => 'test_application#test_render_collection_with_sparse_fieldsets'
         end
+
+        perform_request(:test_render_collection_with_sparse_fieldsets, params: { fields: 'id,name' })
+      end
+
+      it 'returns ok' do
+        expect(response).to have_http_status(:ok)
       end
 
       it 'applies sparse fieldsets when fields param is present' do
-        get :test_render_collection_with_sparse_fieldsets, params: { fields: 'id,name' }, format: :json
-
-        expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
-
-        if json_response['data'].any?
-          expect(json_response['data'].first.keys).to contain_exactly('id', 'name')
-        end
+        expect(json_response['data'].first.keys).to contain_exactly('id', 'name')
       end
     end
 
@@ -244,20 +269,21 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_without_sparse_fieldsets' => 'test_application#test_render_collection_without_sparse_fieldsets'
         end
+
+        perform_request(:test_render_collection_without_sparse_fieldsets)
+      end
+
+      it 'returns ok' do
+        expect(response).to have_http_status(:ok)
       end
 
       it 'does not filter fields when fields param is not present' do
-        get :test_render_collection_without_sparse_fieldsets, format: :json
-
-        expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
-
         expect(json_response['data']).to be_an(Array)
-        if json_response['data'].any?
-          # Should have all fields from presenter
-          expect(json_response['data'].first).to have_key('id')
-          expect(json_response['data'].first).to have_key('name')
-        end
+      end
+
+      it 'includes full presenter fields' do
+        expect(json_response['data'].first).to have_key('id')
+        expect(json_response['data'].first).to have_key('name')
       end
     end
 
@@ -267,62 +293,87 @@ RSpec.describe Api::V1::ApplicationController, type: :controller do
         routes.draw do
           get 'test_render_collection_total_zero' => 'test_application#test_render_collection_total_zero'
         end
+
+        perform_request(:test_render_collection_total_zero, params: { per_page: 10 })
       end
 
-      it 'handles zero total correctly' do
-        get :test_render_collection_total_zero, params: { per_page: 10 }, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'sets total to zero' do
         expect(json_response['meta']['total']).to eq(0)
+      end
+
+      it 'sets total_pages to zero' do
         expect(json_response['meta']['total_pages']).to eq(0)
+      end
+
+      it 'returns empty data array' do
         expect(json_response['data']).to eq([])
       end
     end
 
-    context 'fallback base_relation when collection is neither Relation nor array of AR' do
+    context 'when collection is neither Relation nor array of AR' do
       before do
         routes.draw do
           get 'test_render_collection_fallback_base_relation' => 'test_application#test_render_collection_fallback_base_relation'
         end
+
+        perform_request(
+          :test_render_collection_fallback_base_relation,
+          params: { per_page: 10, page: 1 }
+        )
       end
 
-      it 'uses collection as base_relation and size for total' do
-        get :test_render_collection_fallback_base_relation, params: { per_page: 10, page: 1 }, format: :json
-
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
+      it 'returns data array' do
         expect(json_response['data']).to be_an(Array)
+      end
+
+      it 'sets total size based on collection' do
         expect(json_response['data'].size).to eq(2)
         expect(json_response['meta']['total']).to eq(2)
+      end
+
+      it 'sets total_pages to one' do
         expect(json_response['meta']['total_pages']).to eq(1)
       end
     end
 
-    context 'pagination meta calculation with decimal division' do
+    context 'when pagination meta uses decimal division' do
       before do
         routes.draw do
           get 'test_render_collection_with_presenter' => 'test_application#test_render_collection_with_presenter'
         end
+
+        perform_request(:test_render_collection_with_presenter, params: { per_page: 3 })
       end
 
-      it 'calculates total_pages correctly with decimal division' do
-        get :test_render_collection_with_presenter, params: { per_page: 3 }, format: :json
+      let(:total) { json_response['meta']['total'] }
+      let(:total_pages) { json_response['meta']['total_pages'] }
+      let(:per_page) { json_response['meta']['per_page'] }
 
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
+      end
 
-        total = json_response['meta']['total']
-        total_pages = json_response['meta']['total_pages']
-        per_page = json_response['meta']['per_page']
-
-        # Verify the calculation is correct: total_pages = ceil(total / per_page)
+      it 'calculates total_pages correctly' do
         expect(total_pages).to eq((total.to_f / per_page).ceil)
+      end
+
+      it 'returns total of all items' do
         expect(total).to be >= 10
+      end
+
+      it 'returns per_page from params' do
         expect(per_page).to eq(3)
-        # With 10+ items and per_page=3, total_pages should be at least 4
+      end
+
+      it 'returns at least four pages' do
         expect(total_pages).to be >= 4
       end
     end

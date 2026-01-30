@@ -13,11 +13,11 @@ module Matches
       is_draw = team_1_goals == team_2_goals
       winning_team_id = if is_draw
                           nil
-                        elsif team_1_goals > team_2_goals
+      elsif team_1_goals > team_2_goals
                           match.team_1_id
-                        else
+      else
                           match.team_2_id
-                        end
+      end
 
       match.update!(
         winning_team_id: winning_team_id,
@@ -38,9 +38,9 @@ module Matches
       team_goals = team_stats.sum(&:goals)
       opponent_own_goals = if opponent.blank?
                              0
-                           else
+      else
                              Matches::PlayerStatsQuery.call(match: match, team: opponent).sum(&:own_goals)
-                           end
+      end
 
       team_goals + opponent_own_goals
     end

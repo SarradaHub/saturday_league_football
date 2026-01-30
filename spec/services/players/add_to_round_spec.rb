@@ -16,7 +16,7 @@ RSpec.describe Players::AddToRound do
         expect {
           call_result
         }.to change(PlayerRound, :count).by(1)
-        
+
         expect(player.rounds).to include(round)
       end
 
@@ -34,13 +34,13 @@ RSpec.describe Players::AddToRound do
         expect {
           call_result
         }.not_to change(PlayerRound, :count)
-        
+
         expect(player.rounds.count).to eq(1)
       end
 
       it 'is idempotent' do
         expect(call_result).to eq(player)
-        
+
         # Call again
         result2 = described_class.call(player: player, round_id: round.id)
         expect(result2).to eq(player)

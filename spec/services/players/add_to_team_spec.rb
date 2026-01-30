@@ -16,7 +16,7 @@ RSpec.describe Players::AddToTeam do
         expect {
           call_result
         }.to change(PlayerTeam, :count).by(1)
-        
+
         expect(player.teams).to include(team)
       end
 
@@ -34,13 +34,13 @@ RSpec.describe Players::AddToTeam do
         expect {
           call_result
         }.not_to change(PlayerTeam, :count)
-        
+
         expect(player.teams.count).to eq(1)
       end
 
       it 'is idempotent' do
         expect(call_result).to eq(player)
-        
+
         # Call again
         result2 = described_class.call(player: player, team_id: team.id)
         expect(result2).to eq(player)

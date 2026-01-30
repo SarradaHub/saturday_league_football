@@ -19,16 +19,19 @@ RSpec.describe Teams::FindQuery do
         result = query_result
         expect(result.id).to eq(team.id)
         expect(result.name).to eq(team.name)
+      end
+
+      it 'returns round_id' do
+        result = query_result
         expect(result.round_id).to eq(team.round_id)
       end
 
       it 'uses CollectionQuery to find the team' do
         # Verify that CollectionQuery is called with correct relation
         # The actual implementation will call .first! on the result
-        expect(Teams::CollectionQuery).to receive(:new).with(relation: Team.where(id: team_id), user_id: nil).and_call_original
-        
-        result = query_result
-        expect(result).to eq(team)
+        allow(Teams::CollectionQuery).to receive(:new).and_call_original
+        query_result
+        expect(Teams::CollectionQuery).to have_received(:new).with(relation: Team.where(id: team_id), user_id: nil)
       end
     end
 

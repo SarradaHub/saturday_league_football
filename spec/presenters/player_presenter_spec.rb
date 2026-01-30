@@ -2,6 +2,8 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/ExampleLength
+
 RSpec.describe PlayerPresenter do
   subject(:presenter) { described_class.new(player) }
 
@@ -28,46 +30,54 @@ RSpec.describe PlayerPresenter do
   describe '#as_json' do
     let(:round) { FactoryBot.create(:round, :with_championship) }
     let(:team) { FactoryBot.create(:team, round: round) }
+    let(:json) { presenter.as_json }
 
     before do
       FactoryBot.create(:player_round, player: player, round: round)
       team.players << player
     end
 
-    it 'returns complete json structure' do
-      json = presenter.as_json
-
+    it 'returns a hash with identifiers' do
       expect(json).to be_a(Hash)
       expect(json[:id]).to eq(player.id)
+    end
+
+    it 'includes name' do
       expect(json[:name]).to eq('John Doe')
-      expect(json[:rounds]).to be_an(Array)
+    end
+
+    it 'includes totals' do
       expect(json[:total_goals]).to be_a(Integer)
       expect(json[:total_assists]).to be_a(Integer)
+    end
+
+    it 'includes own goal and match totals' do
       expect(json[:total_own_goals]).to be_a(Integer)
       expect(json[:total_matches]).to be_a(Integer)
+    end
+
+    it 'includes rounds and player_stats arrays' do
+      expect(json[:rounds]).to be_an(Array)
       expect(json[:player_stats]).to be_an(Array)
+    end
+
+    it 'includes timestamps' do
       expect(json[:created_at]).to eq(player.created_at)
       expect(json[:updated_at]).to eq(player.updated_at)
     end
 
     it 'includes serialized rounds' do
-      json = presenter.as_json
-
       expect(json[:rounds].length).to eq(1)
-      expect(json[:rounds].first).to be_a(Hash)
       expect(json[:rounds].first[:id]).to eq(round.id)
     end
 
     it 'includes serialized player_stats' do
-      round = FactoryBot.create(:round, :with_championship)
-      team = FactoryBot.create(:team, round: round)
-      team2 = FactoryBot.create(:team, round: round)
-      match = FactoryBot.create(:match, round: round, team_1: team, team_2: team2)
-      player_stat = FactoryBot.create(:player_stat, player: player, team: team, match: match)
-      json = presenter.as_json
-
+      stats_round = FactoryBot.create(:round, :with_championship)
+      stats_team = FactoryBot.create(:team, round: stats_round)
+      stats_team2 = FactoryBot.create(:team, round: stats_round)
+      stats_match = FactoryBot.create(:match, round: stats_round, team_1: stats_team, team_2: stats_team2)
+      player_stat = FactoryBot.create(:player_stat, player: player, team: stats_team, match: stats_match)
       expect(json[:player_stats].length).to eq(1)
-      expect(json[:player_stats].first).to be_a(Hash)
       expect(json[:player_stats].first[:id]).to eq(player_stat.id)
     end
   end
@@ -246,14 +256,17 @@ RSpec.describe PlayerPresenter do
   describe '#serialized_rounds' do
     context 'with rounds' do
       let(:round) { FactoryBot.create(:round, :with_championship) }
+      let(:serialized) { presenter.send(:serialized_rounds) }
 
       before do
         FactoryBot.create(:player_round, player: player, round: round)
       end
 
       it 'serializes rounds using RoundSerializer' do
-        serialized = presenter.send(:serialized_rounds)
         expect(serialized).to be_an(Array)
+      end
+
+      it 'includes round data' do
         expect(serialized.first).to be_a(Hash)
         expect(serialized.first[:id]).to eq(round.id)
         expect(serialized.first[:name]).to eq(round.name)
@@ -275,11 +288,17 @@ RSpec.describe PlayerPresenter do
       let(:team2) { FactoryBot.create(:team, round: round) }
       let(:match) { FactoryBot.create(:match, round: round, team_1: team, team_2: team2) }
       let!(:player_stat) { FactoryBot.create(:player_stat, player: player, team: team, match: match, goals: 1, assists: 0, own_goals: 0) }
+      let(:serialized) { presenter.send(:serialized_stats) }
 
       it 'serializes player_stats using PlayerStatSerializer' do
-        serialized = presenter.send(:serialized_stats)
         expect(serialized).to be_an(Array)
+      end
+
+      it 'returns a single stat' do
         expect(serialized.length).to eq(1)
+      end
+
+      it 'includes stat fields' do
         expect(serialized.first).to be_a(Hash)
         expect(serialized.first[:id]).to eq(player_stat.id)
         expect(serialized.first[:goals]).to eq(player_stat.goals)
@@ -295,11 +314,15 @@ RSpec.describe PlayerPresenter do
   end
 
   context 'with player without stats' do
-    it 'handles player without stats' do
-      json = presenter.as_json
+    let(:json) { presenter.as_json }
+
+    it 'returns zero totals' do
       expect(json[:total_goals]).to eq(0)
       expect(json[:total_assists]).to eq(0)
       expect(json[:total_own_goals]).to eq(0)
+    end
+
+    it 'returns empty stats array' do
       expect(json[:player_stats]).to eq([])
     end
   end
@@ -318,3 +341,5 @@ RSpec.describe PlayerPresenter do
     end
   end
 end
+
+# rubocop:enable RSpec/ExampleLength

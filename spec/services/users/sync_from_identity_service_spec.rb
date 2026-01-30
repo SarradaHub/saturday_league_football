@@ -23,12 +23,18 @@ RSpec.describe Users::SyncFromIdentityService do
         user = described_class.call(identity_user_data)
         expect(user.external_id).to eq('external-123')
         expect(user.email).to eq('user@example.com')
+      end
+
+      it 'sets admin flag' do
+        user = described_class.call(identity_user_data)
         expect(user.is_admin).to be true
       end
     end
 
     context 'when user already exists' do
-      let!(:existing_user) { create(:user, external_id: 'external-123', email: 'old@example.com', is_admin: false) }
+      let(:existing_user) { create(:user, external_id: 'external-123', email: 'old@example.com', is_admin: false) }
+
+      before { existing_user }
 
       it 'does not create a new user' do
         expect do
@@ -39,6 +45,10 @@ RSpec.describe Users::SyncFromIdentityService do
       it 'updates the user attributes' do
         user = described_class.call(identity_user_data)
         expect(user.email).to eq('user@example.com')
+      end
+
+      it 'updates admin flag' do
+        user = described_class.call(identity_user_data)
         expect(user.is_admin).to be true
       end
     end

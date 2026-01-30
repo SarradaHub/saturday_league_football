@@ -2,16 +2,38 @@ require 'rails_helper'
 
 return unless ENV['PERF_SPECS'] == '1'
 
+# rubocop:disable RSpec/MultipleMemoizedHelpers, RSpec/ScatteredLet
+
 RSpec.describe 'Latency thresholds for list and detail endpoints', type: :request do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
-  let!(:championship) { FactoryBot.create(:championship, user: current_user) }
-  let!(:round) { FactoryBot.create(:round, championship: championship) }
-  let!(:team_1) { FactoryBot.create(:team, round: round) }
-  let!(:team_2) { FactoryBot.create(:team, round: round) }
-  let!(:match) { FactoryBot.create(:match, round: round, team_1: team_1, team_2: team_2) }
-  let!(:player) { FactoryBot.create(:player) }
-  let!(:player_round) { FactoryBot.create(:player_round, player: player, round: round) }
-  let!(:player_stat) { FactoryBot.create(:player_stat, player: player, team: team_1, match: match) }
+  let(:list_endpoints) do
+    [
+      '/api/v1/championships',
+      '/api/v1/players',
+      '/api/v1/rounds',
+      '/api/v1/teams',
+      '/api/v1/matches',
+      '/api/v1/player_stats',
+      "/api/v1/player_stats/match/#{match.id}"
+    ]
+  end
+  let(:detail_endpoints) do
+    [
+      "/api/v1/championships/#{championship.id}",
+      "/api/v1/players/#{player.id}",
+      "/api/v1/rounds/#{round.id}",
+      "/api/v1/teams/#{teams.first.id}",
+      "/api/v1/matches/#{match.id}",
+      "/api/v1/player_stats/#{player_stat.id}"
+    ]
+  end
+  let(:championship) { FactoryBot.create(:championship, user: current_user) }
+  let(:round) { FactoryBot.create(:round, championship: championship) }
+  let(:teams) { FactoryBot.create_list(:team, 2, round: round) }
+  let(:match) { FactoryBot.create(:match, round: round, team_1: teams.first, team_2: teams.last) }
+  let(:player) { FactoryBot.create(:player) }
+  let(:player_stat) { FactoryBot.create(:player_stat, player: player, team: teams.first, match: match) }
+  let(:auth_header) { { 'Authorization' => 'Bearer valid_token' } }
 
   before do
     allow(IdentityServiceClient).to receive(:validate_token).and_return({
@@ -19,10 +41,8 @@ RSpec.describe 'Latency thresholds for list and detail endpoints', type: :reques
       user: { id: current_user.external_id, email: current_user.email }
     })
     allow(Users::SyncFromIdentityService).to receive(:call).and_return(current_user)
-  end
-
-  def auth_header
-    { 'Authorization' => 'Bearer valid_token' }
+    FactoryBot.create(:player_round, player: player, round: round)
+    player_stat
   end
 
   def measure_latency(endpoint)
@@ -33,36 +53,21 @@ RSpec.describe 'Latency thresholds for list and detail endpoints', type: :reques
     finish_time - start_time
   end
 
-  it 'keeps list endpoints under 500ms' do
-    endpoints = [
-      '/api/v1/championships',
-      '/api/v1/players',
-      '/api/v1/rounds',
-      '/api/v1/teams',
-      '/api/v1/matches',
-      '/api/v1/player_stats',
-      "/api/v1/player_stats/match/#{match.id}"
-    ]
 
-    endpoints.each do |endpoint|
+
+  it 'keeps list endpoints under 500ms' do
+    list_endpoints.each do |endpoint|
       elapsed = measure_latency(endpoint)
       expect(elapsed).to be < 0.5
     end
   end
 
   it 'keeps detail endpoints under 300ms' do
-    endpoints = [
-      "/api/v1/championships/#{championship.id}",
-      "/api/v1/players/#{player.id}",
-      "/api/v1/rounds/#{round.id}",
-      "/api/v1/teams/#{team_1.id}",
-      "/api/v1/matches/#{match.id}",
-      "/api/v1/player_stats/#{player_stat.id}"
-    ]
-
-    endpoints.each do |endpoint|
+    detail_endpoints.each do |endpoint|
       elapsed = measure_latency(endpoint)
       expect(elapsed).to be < 0.3
     end
   end
 end
+
+# rubocop:enable RSpec/MultipleMemoizedHelpers, RSpec/ScatteredLet

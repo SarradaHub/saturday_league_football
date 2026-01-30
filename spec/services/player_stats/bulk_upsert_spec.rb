@@ -44,7 +44,7 @@ RSpec.describe PlayerStats::BulkUpsert do
 
       it 'returns collection of created stats' do
         result = call_result
-        
+
         # Returns ActiveRecord::Relation, convert to array for testing
         expect(result).to respond_to(:to_a)
         result_array = result.to_a
@@ -54,9 +54,9 @@ RSpec.describe PlayerStats::BulkUpsert do
 
       it 'replaces existing stats for the match' do
         FactoryBot.create(:player_stat, match: match, player: player1, team: team1, goals: 5)
-        
+
         call_result
-        
+
         expect(PlayerStat.where(match: match).count).to eq(2)
         expect(PlayerStat.where(match: match, player: player1).first.goals).to eq(2)
       end
@@ -67,9 +67,9 @@ RSpec.describe PlayerStats::BulkUpsert do
 
       it 'removes all existing stats' do
         FactoryBot.create(:player_stat, match: match, player: player1, team: team1)
-        
+
         call_result
-        
+
         expect(PlayerStat.where(match: match).count).to eq(0)
       end
 
@@ -114,7 +114,7 @@ RSpec.describe PlayerStats::BulkUpsert do
         # Team1: 4 goals total, 3 assists total (valid: 3 <= 4)
         # Team2: 2 goals total, 1 assist total (valid: 1 <= 2)
         result = call_result
-        
+
         expect(result.length).to eq(3)
         expect(PlayerStat.where(match: match, team: team1).sum(:goals)).to eq(4)
         expect(PlayerStat.where(match: match, team: team1).sum(:assists)).to eq(3)
@@ -199,7 +199,7 @@ RSpec.describe PlayerStats::BulkUpsert do
 
       it 'handles string keys correctly' do
         result = call_result
-        
+
         expect(result.length).to eq(1)
         expect(result.first.player_id).to eq(player1.id)
         expect(result.first.goals).to eq(2)
@@ -221,14 +221,14 @@ RSpec.describe PlayerStats::BulkUpsert do
 
       it 'handles ActionController::Parameters' do
         result = call_result
-        
+
         result_array = result.to_a
         expect(result_array.length).to eq(1)
         expect(result_array.first.player_id).to eq(player1.id)
       end
     end
 
-    context 'transaction rollback on error' do
+    context 'when transaction rollback on error' do
       let(:payload) do
         [
           {
@@ -242,14 +242,18 @@ RSpec.describe PlayerStats::BulkUpsert do
         ]
       end
 
-      it 'rolls back all changes when validation fails' do
+      it 'raises validation error' do
+        expect { call_result }.to raise_error(PlayerStats::BulkUpsert::InvalidAssistsError)
+      end
+
+      it 'does not change total count' do
         initial_count = PlayerStat.count
-        
-        expect {
-          call_result
-        }.to raise_error(PlayerStats::BulkUpsert::InvalidAssistsError)
-        
+        call_result rescue PlayerStats::BulkUpsert::InvalidAssistsError
         expect(PlayerStat.count).to eq(initial_count)
+      end
+
+      it 'does not create stats for match' do
+        call_result rescue PlayerStats::BulkUpsert::InvalidAssistsError
         expect(PlayerStat.where(match: match).count).to eq(0)
       end
     end

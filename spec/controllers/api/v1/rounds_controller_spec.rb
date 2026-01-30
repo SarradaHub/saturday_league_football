@@ -2,9 +2,20 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/ScatteredSetup
+
 RSpec.describe Api::V1::RoundsController, type: :controller do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:championship) { FactoryBot.create(:championship, user: current_user) }
+  let(:json_response) { JSON.parse(response.body) }
+
+  def perform_get(action, params: {})
+    get action, params: params, format: :json
+  end
+
+  def perform_post(action, params: {})
+    post action, params: params, format: :json
+  end
 
   before do
     # Mock authentication
@@ -19,53 +30,47 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   describe '#index' do
     let!(:rounds) { FactoryBot.create_list(:round, 5, championship: championship) }
 
+    before { perform_get(:index, params: { per_page: 100 }) }
+
     it 'lists all rounds' do
-      get :index, params: { per_page: 100 }, format: :json
-
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
+    end
 
+    it 'returns data array' do
       expect(json_response).to have_key('data')
-      # Check that our created rounds are in the response (per_page 100 avoids pagination cutting off our rounds)
+    end
+
+    it 'includes created rounds' do
       round_ids = json_response['data'].map { |r| r['id'] }
       expect(round_ids).to include(*rounds.map(&:id))
     end
 
     it 'supports pagination' do
-      get :index, params: { page: 1, per_page: 2 }, format: :json
-      
+      perform_get(:index, params: { page: 1, per_page: 2 })
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
       expect(json_response['data'].length).to eq(2)
+    end
+
+    it 'returns total for pagination' do
+      perform_get(:index, params: { page: 1, per_page: 2 })
       expect(json_response['meta']['total']).to be >= 5
     end
 
     it 'supports includes for eager loading' do
-      get :index, params: { include: 'championship' }, format: :json
-      
+      perform_get(:index, params: { include: 'championship' })
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
-      # Verify that includes parameter is accepted (actual eager loading is tested in CollectionQuery)
       expect(json_response).to have_key('data')
     end
 
     it 'supports nested includes' do
-      get :index, params: { include: 'matches.team_1' }, format: :json
-      
+      perform_get(:index, params: { include: 'matches.team_1' })
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
       expect(json_response).to have_key('data')
     end
 
     it 'supports multiple includes' do
-      get :index, params: { include: 'championship,matches' }, format: :json
-      
+      perform_get(:index, params: { include: 'championship,matches' })
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
       expect(json_response).to have_key('data')
     end
   end
@@ -73,22 +78,20 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
   describe '#show' do
     let(:round) { FactoryBot.create(:round, championship: championship) }
 
+    before { perform_get(:show, params: { id: round.id }) }
+
     it 'returns round details' do
-      get :show, params: { id: round.id }, format: :json
-      
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
+    end
+
+    it 'returns id and name' do
       expect(json_response['id']).to eq(round.id)
       expect(json_response['name']).to eq(round.name)
     end
 
     it 'supports sparse fieldsets' do
-      get :show, params: { id: round.id, fields: 'id,name' }, format: :json
-      
+      perform_get(:show, params: { id: round.id, fields: 'id,name' })
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
       expect(json_response.keys).to contain_exactly('id', 'name')
     end
   end
@@ -108,12 +111,17 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
       end
 
       it 'creates a new round' do
-        expect {
-          post :create, params: valid_params, format: :json
-        }.to change(Round, :count).by(1)
-        
+        expect { perform_post(:create, params: valid_params) }
+          .to change(Round, :count).by(1)
+      end
+
+      it 'returns created status' do
+        perform_post(:create, params: valid_params)
         expect(response).to have_http_status(:created)
-        json_response = JSON.parse(response.body)
+      end
+
+      it 'returns created round' do
+        perform_post(:create, params: valid_params)
         expect(json_response['name']).to eq('Round 1')
         expect(json_response['championship_id']).to eq(championship.id)
       end
@@ -130,10 +138,12 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
       end
 
       it 'does not create a round' do
-        expect {
-          post :create, params: invalid_params, format: :json
-        }.not_to change(Round, :count)
-        
+        expect { perform_post(:create, params: invalid_params) }
+          .not_to change(Round, :count)
+      end
+
+      it 'returns unprocessable status' do
+        perform_post(:create, params: invalid_params)
         expect(response).to have_http_status(:unprocessable_content)
       end
     end
@@ -143,22 +153,29 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
     let(:round) { FactoryBot.create(:round, championship: championship, name: 'Old Name') }
 
     context 'with valid params' do
-      it 'updates the round' do
-        patch :update, params: { id: round.id, round: { name: 'Updated Name' } }, format: :json
-        
+      before { patch :update, params: { id: round.id, round: { name: 'Updated Name' } }, format: :json }
+
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
+      end
+
+      it 'updates the round' do
         expect(round.reload.name).to eq('Updated Name')
-        
-        json_response = JSON.parse(response.body)
+      end
+
+      it 'returns updated round' do
         expect(json_response['name']).to eq('Updated Name')
       end
     end
 
     context 'with invalid params' do
+      before { patch :update, params: { id: round.id, round: { name: '' } }, format: :json }
+
       it 'returns unprocessable_entity' do
-        patch :update, params: { id: round.id, round: { name: '' } }, format: :json
-        
         expect(response).to have_http_status(:unprocessable_content)
+      end
+
+      it 'does not update the round' do
         expect(round.reload.name).to eq('Old Name')
       end
     end
@@ -168,42 +185,53 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
     let!(:round) { FactoryBot.create(:round, championship: championship) }
 
     it 'deletes the round' do
-      expect {
-        delete :destroy, params: { id: round.id }, format: :json
-      }.to change(Round, :count).by(-1)
-      
+      expect { delete :destroy, params: { id: round.id }, format: :json }
+        .to change(Round, :count).by(-1)
+    end
+
+    it 'returns no content status' do
+      delete :destroy, params: { id: round.id }, format: :json
       expect(response).to have_http_status(:no_content)
     end
   end
 
   describe '#statistics' do
     let(:round) { FactoryBot.create(:round, championship: championship) }
-    let(:team1) { FactoryBot.create(:team, round: round) }
-    let(:team2) { FactoryBot.create(:team, round: round) }
-    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let(:teams) { FactoryBot.create_list(:team, 2, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: teams.first, team_2: teams.last) }
     let(:player) { FactoryBot.create(:player) }
-    let!(:player_round) { FactoryBot.create(:player_round, player: player, round: round) }
 
     before do
-      FactoryBot.create(:player_stat, player: player, team: team1, match: match, goals: 2, assists: 1, own_goals: 0)
+      FactoryBot.create(:player_round, player: player, round: round)
+      FactoryBot.create(:player_stat, player: player, team: teams.first, match: match, goals: 2, assists: 1, own_goals: 0)
+perform_get(:statistics, params: { id: round.id })
     end
 
+
     it 'returns round statistics' do
-      get :statistics, params: { id: round.id }, format: :json
-      
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
+    end
+
+    it 'returns stats hash' do
       expect(json_response).to be_a(Hash)
+    end
+
+    it 'includes player stats in response' do
       # RoundStatistics returns hash with integer keys, but JSON serialization converts to strings
       # Check if stats exist for the player (could be string or integer key)
       player_key = json_response.keys.find { |k| k.to_i == player.id } || player.id.to_s
       expect(json_response).to have_key(player_key)
       player_stats = json_response[player_key]
       expect(player_stats).to be_present
-      # JSON converts symbols to strings
+    end
+
+    it 'returns goals and assists' do
+      player_key = json_response.keys.find { |k| k.to_i == player.id } || player.id.to_s
+      player_stats = json_response[player_key]
       expect(player_stats['goals'] || player_stats[:goals]).to eq(2)
       expect(player_stats['assists'] || player_stats[:assists]).to eq(1)
     end
   end
 end
+
+# rubocop:enable RSpec/ScatteredSetup

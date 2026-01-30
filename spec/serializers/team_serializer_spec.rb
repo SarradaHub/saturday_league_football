@@ -6,17 +6,23 @@ RSpec.describe TeamSerializer do
   describe '#as_json' do
     subject(:serializer) { described_class.new(team) }
 
+    let(:json) { serializer.as_json }
+
     let(:round) { FactoryBot.create(:round, :with_championship) }
     let(:team) { FactoryBot.create(:team, name: 'Team A', round: round) }
 
     context 'when resource is present' do
       it 'serializes id, name, and round_id' do
-        json = serializer.as_json
-
         expect(json).to be_a(Hash)
+      end
+
+      it 'serializes identifiers' do
         expect(json[:id]).to eq(team.id)
-        expect(json[:name]).to eq('Team A')
         expect(json[:round_id]).to eq(round.id)
+      end
+
+      it 'serializes name' do
+        expect(json[:name]).to eq('Team A')
       end
     end
 
@@ -24,7 +30,6 @@ RSpec.describe TeamSerializer do
       let(:team) { nil }
 
       it 'returns nil' do
-        json = serializer.as_json
         expect(json).to be_nil
       end
     end
@@ -42,7 +47,6 @@ RSpec.describe TeamSerializer do
       let(:team) { FactoryBot.create(:team, name: 'FC Barcelona', round: round) }
 
       it 'serializes team name correctly' do
-        json = serializer.as_json
         expect(json[:name]).to eq('FC Barcelona')
       end
     end

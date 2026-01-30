@@ -8,7 +8,7 @@ Rails.application.routes.draw do
   get 'ready', to: 'health#ready'
 
   # Devise routes for User authentication
-  devise_for :users, 
+  devise_for :users,
              skip: [:registrations, :passwords, :confirmations],
              controllers: {
                sessions: 'users/sessions'

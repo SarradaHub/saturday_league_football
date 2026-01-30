@@ -8,12 +8,12 @@ module Users
     def create
       email = params[:user]&.dig(:email)
       password = params[:user]&.dig(:password)
-      
+
       Rails.logger.info "Login attempt for: #{email}"
-      
+
       # Find user by email
       user = User.find_by(email: email)
-      
+
       if user && user.valid_password?(password)
         # For API-only apps, we don't use sessions
         # Just return a token that the client can use for subsequent requests
@@ -22,7 +22,7 @@ module Users
           message: 'Signed in successfully',
           user: {
             id: user.id,
-            email: user.email,
+            email: user.email
             # Adicione outros campos do usuário conforme necessário
           },
           token: generate_token(user)
@@ -70,10 +70,10 @@ module Users
       # Aqui você pode gerar um token JWT ou retornar um token do Devise
       # Por enquanto, vamos usar um token simples baseado no email e timestamp
       # Você pode substituir isso por JWT ou outro sistema de tokens
-      
+
       # Exemplo com JWT (se você tiver a gem jwt instalada):
       # JWT.encode({ user_id: user.id, exp: 24.hours.from_now.to_i }, Rails.application.secrets.secret_key_base)
-      
+
       # Por enquanto, vamos retornar um token simples
       # Em produção, você deve usar um sistema de tokens mais seguro
       # Use strict_encode64 para evitar quebras de linha

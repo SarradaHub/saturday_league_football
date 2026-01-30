@@ -246,11 +246,11 @@ begin
         is_draw = match_result == :draw
         winning_team = if is_draw
                          nil
-                       elsif match_result == :team1_wins
+        elsif match_result == :team1_wins
                          team1
-                       else
+        else
                          team2
-                       end
+        end
 
         # Create PlayerStat for ALL players of team_1
         print_subitem "Creating PlayerStats for #{team1.name} (#{team1.players.count} players)"
@@ -301,9 +301,9 @@ begin
 
         winner_text = if is_draw
                         "Draw"
-                      else
+        else
                         winning_team.name
-                      end
+        end
 
         print_subitem "Match #{match.id} finalized",
                       "Score: #{team1_goals} x #{team2_goals}",

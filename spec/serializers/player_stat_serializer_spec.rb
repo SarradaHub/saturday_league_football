@@ -6,6 +6,8 @@ RSpec.describe PlayerStatSerializer do
   describe '#as_json' do
     subject(:serializer) { described_class.new(player_stat) }
 
+    let(:json) { serializer.as_json }
+
     let(:player) { FactoryBot.create(:player) }
     let(:round) { FactoryBot.create(:round, :with_championship) }
     let(:team) { FactoryBot.create(:team, round: round) }
@@ -24,18 +26,31 @@ RSpec.describe PlayerStatSerializer do
       )
     end
 
-    it 'serializes all fields correctly' do
-      json = serializer.as_json
-
+    it 'serializes as a hash' do
       expect(json).to be_a(Hash)
+    end
+
+    it 'serializes ids and foreign keys' do
       expect(json[:id]).to eq(player_stat.id)
-      expect(json[:goals]).to eq(2)
-      expect(json[:own_goals]).to eq(0)  # Changed to match actual value
-      expect(json[:assists]).to eq(1)    # Changed to match actual value
-      expect(json[:was_goalkeeper]).to be true
       expect(json[:match_id]).to eq(match.id)
+    end
+
+    it 'serializes team and player ids' do
       expect(json[:team_id]).to eq(team.id)
       expect(json[:player_id]).to eq(player.id)
+    end
+
+    it 'serializes stat values' do
+      expect(json[:goals]).to eq(2)
+      expect(json[:own_goals]).to eq(0)
+    end
+
+    it 'serializes assists and goalkeeper flag' do
+      expect(json[:assists]).to eq(1)
+      expect(json[:was_goalkeeper]).to be true
+    end
+
+    it 'serializes timestamps' do
       expect(json[:created_at]).to eq(player_stat.created_at)
       expect(json[:updated_at]).to eq(player_stat.updated_at)
     end
@@ -55,11 +70,12 @@ RSpec.describe PlayerStatSerializer do
       end
 
       it 'serializes zero values correctly' do
-        json = serializer.as_json
-
         expect(json[:goals]).to eq(0)
         expect(json[:own_goals]).to eq(0)
         expect(json[:assists]).to eq(0)
+      end
+
+      it 'serializes goalkeeper flag' do
         expect(json[:was_goalkeeper]).to be false
       end
     end
@@ -79,18 +95,17 @@ RSpec.describe PlayerStatSerializer do
       end
 
       it 'serializes positive values correctly' do
-        json = serializer.as_json
-
         expect(json[:goals]).to eq(5)
         expect(json[:assists]).to eq(2)
       end
     end
 
     it 'includes timestamps' do
-      json = serializer.as_json
-
       expect(json).to have_key(:created_at)
       expect(json).to have_key(:updated_at)
+    end
+
+    it 'returns timestamp types' do
       expect(json[:created_at]).to be_a(ActiveSupport::TimeWithZone)
       expect(json[:updated_at]).to be_a(ActiveSupport::TimeWithZone)
     end

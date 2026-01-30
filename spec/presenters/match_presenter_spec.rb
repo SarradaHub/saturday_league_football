@@ -259,6 +259,10 @@ RSpec.describe MatchPresenter do
       # team_2_player and stats are already created in main before block
       json = presenter.as_json
       expect(json[:team_2_goals_scorer]).to be_an(Array)
+    end
+
+    it 'includes scorer id' do
+      json = presenter.as_json
       expect(json[:team_2_goals_scorer].length).to eq(1)
       expect(json[:team_2_goals_scorer].first[:id]).to eq(team_2_player.id)
     end
@@ -286,25 +290,31 @@ RSpec.describe MatchPresenter do
   context 'with match without teams' do
     # Match requires team_1 and team_2, so we can't test nil teams
     # Instead, test with teams that have no players
-    let(:empty_team_1) { FactoryBot.create(:team, round: round) }
-    let(:empty_team_2) { FactoryBot.create(:team, round: round) }
-    let(:match_without_players) { FactoryBot.create(:match, round: round, team_1: empty_team_1, team_2: empty_team_2) }
-    let(:presenter_without_players) { described_class.new(match_without_players) }
+    let(:presenter_without_players) do
+      empty_teams = FactoryBot.create_list(:team, 2, round: round)
+      match_without_players = FactoryBot.create(:match, round: round, team_1: empty_teams.first, team_2: empty_teams.last)
+      described_class.new(match_without_players)
+    end
 
     it 'handles match without players in teams' do
       json = presenter_without_players.as_json
       expect(json[:team_1]).to be_present
       expect(json[:team_2]).to be_present
+    end
+
+    it 'returns empty player arrays' do
+      json = presenter_without_players.as_json
       expect(json[:team_1_players]).to eq([])
       expect(json[:team_2_players]).to eq([])
     end
   end
 
   context 'with match without players' do
-    let(:empty_team_1) { FactoryBot.create(:team, round: round) }
-    let(:empty_team_2) { FactoryBot.create(:team, round: round) }
-    let(:match_without_players) { FactoryBot.create(:match, round: round, team_1: empty_team_1, team_2: empty_team_2) }
-    let(:presenter_without_players) { described_class.new(match_without_players) }
+    let(:presenter_without_players) do
+      empty_teams = FactoryBot.create_list(:team, 2, round: round)
+      match_without_players = FactoryBot.create(:match, round: round, team_1: empty_teams.first, team_2: empty_teams.last)
+      described_class.new(match_without_players)
+    end
 
     it 'handles match without players in teams' do
       json = presenter_without_players.as_json
@@ -314,13 +324,19 @@ RSpec.describe MatchPresenter do
   end
 
   context 'with match without stats' do
-    let(:match_no_stats) { FactoryBot.create(:match, round: round, team_1: team_1, team_2: team_2) }
-    let(:presenter_no_stats) { described_class.new(match_no_stats) }
+    let(:presenter_no_stats) do
+      match_no_stats = FactoryBot.create(:match, round: round, team_1: team_1, team_2: team_2)
+      described_class.new(match_no_stats)
+    end
 
     it 'handles match without player stats' do
       json = presenter_no_stats.as_json
       expect(json[:team_1_goals]).to eq(0)
       expect(json[:team_2_goals]).to eq(0)
+    end
+
+    it 'returns empty scorer arrays' do
+      json = presenter_no_stats.as_json
       expect(json[:team_1_goals_scorer]).to eq([])
       expect(json[:team_2_goals_scorer]).to eq([])
     end

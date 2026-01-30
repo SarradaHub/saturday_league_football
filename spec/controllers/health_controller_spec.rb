@@ -2,58 +2,73 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/ScatteredSetup, RSpec/ExampleLength
+
 RSpec.describe HealthController, type: :controller do
+  let(:json_response) { JSON.parse(response.body) }
+
+  def perform_get(action)
+    get action, format: :json
+  end
+
   describe '#health' do
+    before { perform_get(:health) }
+
     it 'returns ok status with service information' do
-      get :health, format: :json
-      
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
+    end
+
+    it 'returns service metadata' do
       expect(json_response).to include(
         'status' => 'ok',
         'service' => 'saturday-league-api'
       )
+    end
+
+    it 'returns timestamp and environment' do
       expect(json_response).to have_key('timestamp')
       expect(json_response).to have_key('environment')
+    end
+
+    it 'returns current environment' do
       expect(json_response['environment']).to eq(Rails.env)
     end
 
     it 'returns timestamp in ISO8601 format' do
-      get :health, format: :json
-      
+      perform_get(:health)
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
-      # Verify timestamp is valid ISO8601 format
       expect { Time.iso8601(json_response['timestamp']) }.not_to raise_error
+    end
+
+    it 'returns a recent timestamp' do
+      perform_get(:health)
       timestamp = Time.iso8601(json_response['timestamp'])
       expect(timestamp).to be_within(5.seconds).of(Time.current)
     end
 
     it 'returns correct environment' do
-      get :health, format: :json
-      
+      perform_get(:health)
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
-      # Environment can be 'test' or 'development' depending on how tests are run
       expect(json_response['environment']).to be_in(['test', 'development'])
     end
   end
 
   describe '#ready' do
     context 'when database is connected' do
+      before { perform_get(:ready) }
+
       it 'returns ready status' do
-        get :ready, format: :json
-        
         expect(response).to have_http_status(:ok)
-        json_response = JSON.parse(response.body)
-        
+      end
+
+      it 'returns service metadata' do
         expect(json_response).to include(
           'status' => 'ready',
           'service' => 'saturday-league-api'
         )
+      end
+
+      it 'returns timestamp' do
         expect(json_response).to have_key('timestamp')
       end
     end
@@ -61,27 +76,28 @@ RSpec.describe HealthController, type: :controller do
     context 'when database connection fails' do
       before do
         allow(ActiveRecord::Base.connection).to receive(:execute).and_raise(StandardError.new('Connection failed'))
+perform_get(:ready)
       end
 
+
       it 'returns not ready status' do
-        get :ready, format: :json
-        
         expect(response).to have_http_status(:service_unavailable)
-        json_response = JSON.parse(response.body)
-        
+      end
+
+      it 'returns service metadata' do
         expect(json_response).to include(
           'status' => 'not ready',
           'service' => 'saturday-league-api'
         )
+      end
+
+      it 'includes database error message' do
         expect(json_response['error']).to include('Database connection failed')
       end
 
       it 'includes error message in response' do
-        get :ready, format: :json
-        
+        perform_get(:ready)
         expect(response).to have_http_status(:service_unavailable)
-        json_response = JSON.parse(response.body)
-        
         expect(json_response['error']).to be_a(String)
         expect(json_response['error']).to include('Connection failed')
       end
@@ -91,11 +107,9 @@ RSpec.describe HealthController, type: :controller do
       it 'handles PG::ConnectionBad errors' do
         error = Class.new(StandardError).new('PG::ConnectionBad')
         allow(ActiveRecord::Base.connection).to receive(:execute).and_raise(error)
-        
-        get :ready, format: :json
-        
+
+        perform_get(:ready)
         expect(response).to have_http_status(:service_unavailable)
-        json_response = JSON.parse(response.body)
         expect(json_response['status']).to eq('not ready')
         expect(json_response['error']).to include('Database connection failed')
       end
@@ -103,39 +117,40 @@ RSpec.describe HealthController, type: :controller do
       it 'handles timeout errors' do
         error = Timeout::Error.new('Connection timeout')
         allow(ActiveRecord::Base.connection).to receive(:execute).and_raise(error)
-        
-        get :ready, format: :json
-        
+
+        perform_get(:ready)
         expect(response).to have_http_status(:service_unavailable)
-        json_response = JSON.parse(response.body)
         expect(json_response['status']).to eq('not ready')
         expect(json_response['error']).to include('Connection timeout')
       end
     end
 
     it 'returns timestamp in ISO8601 format when ready' do
-      get :ready, format: :json
-      
+      perform_get(:ready)
       expect(response).to have_http_status(:ok)
-      json_response = JSON.parse(response.body)
-      
-      # Verify timestamp is valid ISO8601 format
       expect { Time.iso8601(json_response['timestamp']) }.not_to raise_error
+    end
+
+    it 'returns recent timestamp when ready' do
+      perform_get(:ready)
       timestamp = Time.iso8601(json_response['timestamp'])
       expect(timestamp).to be_within(5.seconds).of(Time.current)
     end
 
     it 'returns error message when not ready' do
       allow(ActiveRecord::Base.connection).to receive(:execute).and_raise(StandardError.new('Connection failed'))
-      
-      get :ready, format: :json
-      
+
+      perform_get(:ready)
       expect(response).to have_http_status(:service_unavailable)
-      json_response = JSON.parse(response.body)
-      
-      # Error response may or may not include timestamp depending on implementation
+    end
+
+    it 'includes error response fields when not ready' do
+      allow(ActiveRecord::Base.connection).to receive(:execute).and_raise(StandardError.new('Connection failed'))
+      perform_get(:ready)
       expect(json_response).to have_key('error')
       expect(json_response['status']).to eq('not ready')
     end
   end
 end
+
+# rubocop:enable RSpec/ScatteredSetup, RSpec/ExampleLength

@@ -2,6 +2,8 @@
 
 require 'rails_helper'
 
+# rubocop:disable RSpec/ExampleLength, RSpec/ScatteredSetup
+
 # Create a test controller that includes the concern
 class TestController < ApplicationController
   include IdentityAuthentication
@@ -11,8 +13,21 @@ class TestController < ApplicationController
   end
 end
 
+# rubocop:enable RSpec/ExampleLength, RSpec/ScatteredSetup
+
+
+
 RSpec.describe IdentityAuthentication, type: :controller do
   controller(TestController) do
+  end
+
+  let(:json_response) { JSON.parse(response.body) }
+  let(:unauthorized_payload) do
+    { 'success' => false, 'message' => 'Unauthorized', 'code' => 'UNAUTHORIZED' }
+  end
+
+  def perform_index
+    get :index, format: :json
   end
 
   describe 'authentication' do
@@ -26,10 +41,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'allows access and sets current_user' do
-        get :index, format: :json
-        
-        expect(response).to have_http_status(:ok)
-        # current_user is a private method, test indirectly through successful response
+        perform_index
         expect(response).to have_http_status(:ok)
       end
     end
@@ -40,15 +52,13 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
-        json_response = JSON.parse(response.body)
-        expect(json_response).to include(
-          'success' => false,
-          'message' => 'Unauthorized',
-          'code' => 'UNAUTHORIZED'
-        )
+      end
+
+      it 'returns unauthorized response body' do
+        perform_index
+        expect(json_response).to include(unauthorized_payload)
       end
     end
 
@@ -62,15 +72,13 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
-        json_response = JSON.parse(response.body)
-        expect(json_response).to include(
-          'success' => false,
-          'message' => 'Unauthorized',
-          'code' => 'UNAUTHORIZED'
-        )
+      end
+
+      it 'returns unauthorized response body' do
+        perform_index
+        expect(json_response).to include(unauthorized_payload)
       end
     end
 
@@ -80,8 +88,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -92,8 +99,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -104,8 +110,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -116,8 +121,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -131,8 +135,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -144,8 +147,7 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns unauthorized' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
       end
     end
@@ -155,42 +157,42 @@ RSpec.describe IdentityAuthentication, type: :controller do
     it 'extracts token from Bearer format' do
       request.headers['Authorization'] = 'Bearer my_token_123'
       token = controller.send(:extract_token_from_header)
-      
+
       expect(token).to eq('my_token_123')
     end
 
     it 'returns nil when Authorization header is missing' do
       request.headers['Authorization'] = nil
       token = controller.send(:extract_token_from_header)
-      
+
       expect(token).to be_nil
     end
 
     it 'returns nil when Authorization header does not start with Bearer' do
       request.headers['Authorization'] = 'Token my_token'
       token = controller.send(:extract_token_from_header)
-      
+
       expect(token).to be_nil
     end
 
     it 'returns nil when Authorization header has wrong number of parts' do
       request.headers['Authorization'] = 'Bearer token extra'
       token = controller.send(:extract_token_from_header)
-      
+
       expect(token).to be_nil
     end
 
     it 'returns nil when Authorization header has only Bearer' do
       request.headers['Authorization'] = 'Bearer'
       token = controller.send(:extract_token_from_header)
-      
+
       expect(token).to be_nil
     end
 
     it 'extracts token correctly with multiple spaces in token' do
       request.headers['Authorization'] = 'Bearer token with spaces'
       token = controller.send(:extract_token_from_header)
-      
+
       # Should return nil because split creates more than 2 parts
       expect(token).to be_nil
     end
@@ -211,17 +213,24 @@ RSpec.describe IdentityAuthentication, type: :controller do
           user: { id: 1, name: 'Test User', email: 'test.user@example.com' }
         })
         request.headers['Authorization'] = 'Bearer valid_token'
+perform_index
       end
 
-      it 'returns the current user' do
-        get :index, format: :json
-        
+
+      it 'returns ok' do
         expect(response).to have_http_status(:ok)
-        # current_user is set via @current_user instance variable
-        user = controller.send(:current_user)
-        expect(user).to be_a(User)
-        expect(user.external_id).to eq('1')
-        expect(user.email).to eq('test.user@example.com')
+      end
+
+      it 'returns a user instance' do
+        expect(controller.send(:current_user)).to be_a(User)
+      end
+
+      it 'returns the expected external_id' do
+        expect(controller.send(:current_user).external_id).to eq('1')
+      end
+
+      it 'returns the expected email' do
+        expect(controller.send(:current_user).email).to eq('test.user@example.com')
       end
     end
 
@@ -231,11 +240,13 @@ RSpec.describe IdentityAuthentication, type: :controller do
       end
 
       it 'returns nil' do
-        get :index, format: :json
-        
+        perform_index
         expect(response).to have_http_status(:unauthorized)
-        user = controller.send(:current_user)
-        expect(user).to be_nil
+      end
+
+      it 'does not set current_user' do
+        perform_index
+        expect(controller.send(:current_user)).to be_nil
       end
     end
   end
@@ -244,15 +255,14 @@ RSpec.describe IdentityAuthentication, type: :controller do
     it 'renders correct JSON response' do
       # Test through a request to trigger the before_action
       request.headers['Authorization'] = nil
-      get :index, format: :json
-      
+      perform_index
       expect(response).to have_http_status(:unauthorized)
-      json_response = JSON.parse(response.body)
-      expect(json_response).to include(
-        'success' => false,
-        'message' => 'Unauthorized',
-        'code' => 'UNAUTHORIZED'
-      )
+    end
+
+    it 'returns unauthorized payload' do
+      request.headers['Authorization'] = nil
+      perform_index
+      expect(json_response).to include(unauthorized_payload)
     end
   end
 end
