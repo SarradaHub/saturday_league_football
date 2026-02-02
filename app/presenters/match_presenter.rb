@@ -17,9 +17,11 @@ class MatchPresenter < ApplicationPresenter
       team_1_goals_scorer: team_1_goals_scorer_array,
       team_1_assists: team_1_assists_array,
       team_1_own_goals_scorer: team_1_own_goals_scorer_array,
+      team_1_goalkeepers: team_1_goalkeepers_array,
       team_2_goals_scorer: team_2_goals_scorer_array,
       team_2_assists: team_2_assists_array,
       team_2_own_goals_scorer: team_2_own_goals_scorer_array,
+      team_2_goalkeepers: team_2_goalkeepers_array,
       statistics: statistics_payload,
       created_at: created_at,
       updated_at: updated_at
@@ -78,6 +80,14 @@ class MatchPresenter < ApplicationPresenter
 
   def team_2_own_goals_scorer
     statistics.breakdown_for(resource.team_2, resource.team_1)[:own_goals]
+  end
+
+  def team_1_goalkeepers
+    statistics.breakdown_for(resource.team_1, resource.team_2)[:goalkeepers]
+  end
+
+  def team_2_goalkeepers
+    statistics.breakdown_for(resource.team_2, resource.team_1)[:goalkeepers]
   end
 
   private
@@ -151,5 +161,24 @@ class MatchPresenter < ApplicationPresenter
   def team_2_own_goals_scorer_array
     # Own goals from team_1 count for team_2
     hash_to_player_array(resource.team_1, statistics.breakdown_for(resource.team_1, resource.team_2)[:own_goals])
+  end
+
+  def team_1_goalkeepers_array
+    goalkeepers_to_player_array(resource.team_1, team_1_goalkeepers)
+  end
+
+  def team_2_goalkeepers_array
+    goalkeepers_to_player_array(resource.team_2, team_2_goalkeepers)
+  end
+
+  def goalkeepers_to_player_array(team, goalkeeper_names)
+    return [] if team.blank? || goalkeeper_names.blank? || !goalkeeper_names.is_a?(Array)
+
+    result = []
+    goalkeeper_names.each do |player_name|
+      player = find_player_by_name(team, player_name)
+      result << PlayerSerializer.new(player).as_json if player
+    end
+    result
   end
 end

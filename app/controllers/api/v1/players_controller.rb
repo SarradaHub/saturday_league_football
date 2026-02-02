@@ -10,6 +10,7 @@ module Api
         # Get base relation for count
         base_query = Players::CollectionQuery.new(
           championship_id: params[:championship_id],
+          round_id: params[:round_id],
           includes: includes_list,
           page: nil,
           per_page: nil,
@@ -19,6 +20,7 @@ module Api
         # Get paginated collection
         collection = Players::CollectionQuery.new(
           championship_id: params[:championship_id],
+          round_id: params[:round_id],
           includes: includes_list,
           page: pagination[:page],
           per_page: pagination[:per_page],
@@ -40,6 +42,9 @@ module Api
 
       def add_to_round
         player = Players::AddToRound.call(player: @player, round_id: params[:round_id])
+        # The service already reloads the player, but ensure associations are loaded
+        # Reload from database with associations to get fresh data including new round
+        player = Player.includes({ player_rounds: :round }).find(player.id)
         render json: PlayerPresenter.new(player).as_json
       end
 

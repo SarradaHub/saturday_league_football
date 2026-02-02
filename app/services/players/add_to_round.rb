@@ -9,7 +9,12 @@ module Players
 
     def call
       round = Round.find(round_id)
-      player.rounds << round unless player.rounds.exists?(round.id)
+      # Use find_or_create_by to ensure player_round is created
+      player.player_rounds.find_or_create_by(round: round) do |player_round|
+        # PlayerRound will be created if it doesn't exist
+      end
+      # Return reloaded player to ensure associations are fresh
+      player.reload
       player
     end
 

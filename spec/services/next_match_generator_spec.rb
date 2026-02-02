@@ -79,5 +79,28 @@ RSpec.describe Rounds::NextMatchGenerator do
       expect(result[:suggested_match][:team_1][:id]).to eq(team_3.id)
       expect(result[:suggested_match][:team_2][:id]).to eq(team_4.id)
     end
+
+    it 'uses result from last match when first match is draw and second match has result' do
+      team_1 = create_team(name: 'Time 1', created_at: 5.hours.ago)
+      team_2 = create_team(name: 'Time 2', created_at: 4.hours.ago)
+      team_3 = create_team(name: 'Time 3', created_at: 3.hours.ago)
+      team_4 = create_team(name: 'Time 4', created_at: 2.hours.ago)
+
+      add_players(team_4, 3)
+
+      # Partida 1: empate (0x0)
+      create(:match, round: round, team_1: team_1, team_2: team_2, draw: true, created_at: 2.hours.ago)
+      # Partida 2: Time 3 vence Time 4
+      create(:match, round: round, team_1: team_3, team_2: team_4, winning_team_id: team_3.id, draw: false, created_at: 1.hour.ago)
+
+      result = described_class.call(round: round)
+
+      # Deve gerar a próxima partida baseada na Partida 2 (última), não na Partida 1
+      # Time 3 (vencedor da Partida 2) deve jogar contra o próximo time disponível
+      expect(result[:needs_winner_selection]).to be(false)
+      expect(result[:suggested_match][:team_1][:id]).to eq(team_3.id)
+      # O próximo time deve ser um dos times da Partida 1 (team_1 ou team_2)
+      expect([team_1.id, team_2.id]).to include(result[:suggested_match][:team_2][:id])
+    end
   end
 end

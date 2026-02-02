@@ -1,3 +1,8 @@
+# frozen_string_literal: true
+
+# FactoryBot is automatically loaded by factory_bot_rails gem in development/test
+# No need to manually require or find_definitions
+
 def print_header(title)
   puts "\n\e[33m== #{title} ==\e[0m"
 end
@@ -10,307 +15,371 @@ def print_subitem(label, *details)
   puts "  └─ #{label}" + (details.any? ? " - #{details.join(' | ')}" : "")
 end
 
-def calculate_goals_for(match, team, opponent)
-  return 0 if team.blank?
-
-  team_stats = Matches::PlayerStatsQuery.call(match: match, team: team)
-  team_goals = team_stats.sum(&:goals)
-  opponent_own_goals = Matches::PlayerStatsQuery.call(match: match, team: opponent).sum(&:own_goals)
-
-  team_goals + opponent_own_goals
+def add_players_to_round(round, players)
+  players.each do |player|
+    Players::AddToRound.call(player: player, round_id: round.id)
+    print_subitem "Player added to round", "Player: #{player.name}", "Round: #{round.name}"
+  end
+  # Auto-balanceamento via callback de PlayerRound (RoundTeamGenerator)
+  round.reload
+  teams = round.teams.order(:created_at).to_a
+  teams.each do |team|
+    print_subitem "Team balanced", "#{team.name} - players: #{team.players.count}"
+  end
+  teams
 end
 
-def create_player_stats_for_team(match, team, is_winning_team: false, is_losing: false)
-  players = team.players.to_a
-  return [] if players.empty?
-
-  # Ensure exactly 1 goalkeeper per team
-  goalkeeper = players.sample
-  field_players = players - [goalkeeper]
-
-  stats = []
-
-  # Create stat for goalkeeper (no goals, no assists)
-  stats << FactoryBot.create(:player_stat,
-    player: goalkeeper,
-    team: team,
-    match: match,
-    goals: 0,
-    own_goals: 0,
-    assists: 0,
-    was_goalkeeper: true
+def finalize_match_with_stats(round:, team1:, team2:, team1_goals:, team2_goals:, team1_own_goals: 0, team2_own_goals: 0, name_suffix: '')
+  match = Match.create!(
+    round: round,
+    team_1: team1,
+    team_2: team2,
+    name: "#{team1.name} vs #{team2.name}#{name_suffix.present? ? " - #{name_suffix}" : ''}"
   )
 
-  # Regra: assistência só existe se existir gol; gol pode existir sem assistência; gol contra não tem assistência.
-  # Criar sempre primeiros os jogadores com gols, depois com assistências, para a validação por time passar.
-  if is_winning_team
-    total_goals = rand(1..2)
-    total_assists = rand(0..total_goals)
-    assign_goals_and_assists_to_field_players(
+  scorer1 = team1.players.first
+  scorer2 = team2.players.first
+
+  if team1_goals.positive?
+    PlayerStat.create!(
+      player: scorer1,
+      team: team1,
       match: match,
-      team: team,
-      field_players: field_players,
-      total_goals: total_goals,
-      total_assists: total_assists,
-      stats: stats
-    )
-  elsif is_losing
-    field_players.each do |player|
-      stats << FactoryBot.create(:player_stat,
-        player: player,
-        team: team,
-        match: match,
-        goals: 0,
-        own_goals: 0,
-        assists: 0,
-        was_goalkeeper: false
-      )
-    end
-  else
-    total_goals = rand(0..1)
-    total_assists = total_goals.zero? ? 0 : rand(0..1)
-    assign_goals_and_assists_to_field_players(
-      match: match,
-      team: team,
-      field_players: field_players,
-      total_goals: total_goals,
-      total_assists: total_assists,
-      stats: stats
-    )
-  end
-
-  stats
-end
-
-def assign_goals_and_assists_to_field_players(match:, team:, field_players:, total_goals:, total_assists:, stats:)
-  # Montar lista (player, goals, assists). Assistência só com gol; ordem: gols primeiro, depois assistências.
-  rows = field_players.map { |p| [p, 0, 0] }
-  g_remaining = total_goals
-  a_remaining = total_assists
-
-  # Distribuir gols
-  idx = 0
-  while g_remaining.positive? && idx < rows.size
-    r = [g_remaining, 1].min
-    rows[idx][1] = r
-    g_remaining -= r
-    idx += 1
-  end
-
-  # Distribuir assistências (só entre quem não fez gol, ou quem fez – mas total já <= total_goals)
-  pool = rows.each_with_index.to_a
-  pool.shuffle!
-  idx = 0
-  while a_remaining.positive? && idx < pool.size
-    _, i = pool[idx]
-    rows[i][2] = 1
-    a_remaining -= 1
-    idx += 1
-  end
-
-  # Criar primeiro quem tem gols, depois quem tem só assistências, depois o resto (validação por time)
-  created = rows.sort_by { |_, g, a| [-g, -a] }
-  created.each do |player, goals, assists|
-    stats << FactoryBot.create(:player_stat,
-      player: player,
-      team: team,
-      match: match,
-      goals: goals,
+      goals: team1_goals,
+      assists: 0,
       own_goals: 0,
-      assists: assists,
       was_goalkeeper: false
     )
   end
+
+  if team2_goals.positive?
+    PlayerStat.create!(
+      player: scorer2,
+      team: team2,
+      match: match,
+      goals: team2_goals,
+      assists: 0,
+      own_goals: 0,
+      was_goalkeeper: false
+    )
+  end
+
+  if team1_own_goals.positive?
+    PlayerStat.create!(
+      player: scorer1,
+      team: team1,
+      match: match,
+      goals: 0,
+      assists: 0,
+      own_goals: team1_own_goals,
+      was_goalkeeper: false
+    )
+  end
+
+  if team2_own_goals.positive?
+    PlayerStat.create!(
+      player: scorer2,
+      team: team2,
+      match: match,
+      goals: 0,
+      assists: 0,
+      own_goals: team2_own_goals,
+      was_goalkeeper: false
+    )
+  end
+
+  Matches::Finalize.call(match: match)
+  match.reload
+
+  print_subitem "Match finalized",
+                match.name,
+                "Score: #{team1.name} #{team1_goals + team2_own_goals} x #{team2.name} #{team2_goals + team1_own_goals}",
+                "Winner: #{match.draw ? 'Draw' : match.winning_team&.name}"
+
+  match
+end
+
+def create_goalkeeper_from_other_team(match:, target_team:, source_team:)
+  external_player = source_team.players.first
+  PlayerStat.create!(
+    player: external_player,
+    team: target_team,
+    match: match,
+    goals: 0,
+    assists: 0,
+    own_goals: 0,
+    was_goalkeeper: true
+  )
+  print_subitem "External goalkeeper",
+                "GK: #{external_player.name}",
+                "Plays for: #{source_team.name}",
+                "Acts as GK for: #{target_team.name}"
 end
 
 begin
-  # Clear existing data (uncomment if needed)
-  # ActiveRecord::Base.connection.tables.each do |t|
-  #   ActiveRecord::Base.connection.execute("TRUNCATE #{t} RESTART IDENTITY CASCADE")
-  # end
-
   print_header "CREATING ADMIN USER"
   admin_email = ENV.fetch('ADMIN_EMAIL', 'admin@example.com')
   admin_password = ENV.fetch('ADMIN_PASSWORD', 'password123')
 
-  admin = User.find_or_initialize_by(email: admin_email)
-  if admin.new_record?
-    admin.password = admin_password
-    admin.password_confirmation = admin_password
-    admin.is_admin = true
-    admin.save!
-    print_item "Admin user created", admin_email, "Password: #{admin_password}"
-  else
-    admin.update!(is_admin: true) unless admin.is_admin?
-    print_item "Admin user already exists", admin_email
-  end
-
-  print_header "CREATING CHAMPIONSHIPS"
-  championships = 3.times.map do |i|
-    champ = FactoryBot.create(:championship, user: admin)
-    print_item "Championship #{i+1}", champ.name, champ.description
-    champ
-  end
-
-  print_header "BUILDING CHAMPIONSHIP STRUCTURE"
-  championships.each do |championship|
-    print_item "Working on Championship: #{championship.name}"
-
-    # Set championship limits to exactly 6 players per team (5 field + 1 goalkeeper)
-    players_per_team = 6
-    championship.update!(
-      min_players_per_team: players_per_team,
-      max_players_per_team: players_per_team
-    )
-    print_subitem "Championship limits set", "Min: #{players_per_team}, Max: #{players_per_team}"
-
-    # Create rounds for this championship
-    print_subitem "Creating rounds for #{championship.name}"
-    rounds = 3.times.map do |i|
-      round = FactoryBot.create(:round, name: "#{(i+1).ordinalize} Rodada", championship: championship)
-      print_subitem "Round #{i+1}", round.name, round.round_date.to_s
-      round
-    end
-
-    # Create teams for each round and associate them
-    print_subitem "Creating teams for #{championship.name}"
-    rounds.each do |round|
-      # Create 3 teams per round
-      3.times do |i|
-        team = FactoryBot.create(:team, round: round, name: "Time #{round.name} - #{i+1}")
-        print_subitem "Team #{team.name} created for #{round.name}"
-      end
-    end
-
-    # Add players to rounds (this will automatically distribute them to teams via RoundTeamGenerator)
-    # Each team needs exactly 6 players (5 field players + 1 goalkeeper)
-    rounds.each do |round|
-      print_subitem "Adding players to #{round.name}"
-      round_teams_count = round.teams.count
-      total_players_needed = round_teams_count * players_per_team
-
-      # Create players for this round
-      players_for_round = total_players_needed.times.map do |i|
-        player = FactoryBot.create(:player)
-        print_subitem "Player #{i+1}", player.name
-        player
-      end
-
-      # Skip callback temporarily for better performance
-      PlayerRound.skip_callback(:commit, :after, :auto_balance_round_teams)
-
-      players_for_round.each do |player|
-        pr = FactoryBot.create(:player_round, player: player, round: round)
-        print_subitem "PlayerRound created", "Player: #{player.name}", "Round: #{round.name}"
-      end
-
-      # Re-enable callback
-      PlayerRound.set_callback(:commit, :after, :auto_balance_round_teams)
-
-      # Call RoundTeamGenerator once after all players are added to this round
-      # This will distribute players evenly among teams (6 per team)
-      RoundTeamGenerator.call(round)
-      print_subitem "Teams balanced for #{round.name} (#{players_per_team} players per team)"
-
-      # Verify each team has exactly 6 players
-      round.teams.each do |team|
-        if team.players.count != players_per_team
-          raise "Team #{team.name} has #{team.players.count} players, expected #{players_per_team}"
-        end
-      end
-    end
-
-    # Create matches between teams in the same round
-    rounds.each do |round|
-      print_subitem "Creating matches for #{round.name}"
-      round_teams = round.teams.order(:created_at).to_a
-
-      # Create all possible team combinations for matches
-      round_teams.combination(2).each do |team1, team2|
-        match = FactoryBot.create(:match,
-                                  round: round,
-                                  name: "#{team1.name} vs #{team2.name}",
-                                  team_1: team1,
-                                  team_2: team2,
-                                  winning_team_id: nil,
-                                  draw: nil
-        )
-
-        print_subitem "Match #{match.id}",
-                      "#{team1.name} vs #{team2.name}"
-
-        # Decide winner before creating stats (to ensure winner has max 2 goals)
-        # Randomly decide winner (or draw)
-        match_result = [:team1_wins, :team2_wins, :draw].sample
-
-        is_draw = match_result == :draw
-        winning_team = if is_draw
-                         nil
-        elsif match_result == :team1_wins
-                         team1
-        else
-                         team2
-        end
-
-        # Create PlayerStat for ALL players of team_1
-        print_subitem "Creating PlayerStats for #{team1.name} (#{team1.players.count} players)"
-        team1_is_winner = winning_team == team1
-        # If team1 is losing (not draw and not winner), ensure it has 0 goals
-        team1_is_losing = !is_draw && !team1_is_winner
-        team1_stats = create_player_stats_for_team(match, team1, is_winning_team: team1_is_winner, is_losing: team1_is_losing)
-        team1_stats.each do |stat|
-          print_subitem "PlayerStat ##{stat.id}",
-                        "#{stat.player.name} (#{team1.name})",
-                        "Goals: #{stat.goals}",
-                        "Assists: #{stat.assists}",
-                        "GK: #{stat.was_goalkeeper}"
-        end
-
-        # Create PlayerStat for ALL players of team_2
-        print_subitem "Creating PlayerStats for #{team2.name} (#{team2.players.count} players)"
-        team2_is_winner = winning_team == team2
-        # If team2 is losing (not draw and not winner), ensure it has 0 goals
-        team2_is_losing = !is_draw && !team2_is_winner
-        team2_stats = create_player_stats_for_team(match, team2, is_winning_team: team2_is_winner, is_losing: team2_is_losing)
-        team2_stats.each do |stat|
-          print_subitem "PlayerStat ##{stat.id}",
-                        "#{stat.player.name} (#{team2.name})",
-                        "Goals: #{stat.goals}",
-                        "Assists: #{stat.assists}",
-                        "GK: #{stat.was_goalkeeper}"
-        end
-
-        # Calculate final goals to verify
-        team1_goals = calculate_goals_for(match, team1, team2)
-        team2_goals = calculate_goals_for(match, team2, team1)
-
-        # Verify winner has max 2 goals
-        if winning_team
-          winner_goals = winning_team == team1 ? team1_goals : team2_goals
-          if winner_goals > 2
-            raise "Winner #{winning_team.name} has #{winner_goals} goals, but max is 2"
+  admin = if defined?(FactoryBot)
+            FactoryBot.create(:user, :admin, email: admin_email, password: admin_password, password_confirmation: admin_password)
+          else
+            User.find_or_initialize_by(email: admin_email).tap do |u|
+              u.password = admin_password
+              u.password_confirmation = admin_password
+              u.is_admin = true
+              u.save!
+            end
           end
-        end
+  print_item "Admin user created", admin_email, "Password: #{admin_password}"
 
-        # Update match with calculated values
-        winning_team_id = winning_team&.id
-        match.update!(
-          winning_team_id: winning_team_id,
-          draw: is_draw
-        )
+  print_header "CREATING CHAMPIONSHIP"
+  players_per_team = 6
+  championship = if defined?(FactoryBot)
+                   FactoryBot.create(:championship,
+                     user: admin,
+                     min_players_per_team: players_per_team,
+                     max_players_per_team: players_per_team)
+                 else
+                   Championship.find_or_initialize_by(name: 'Saturday League Demo', user: admin).tap do |c|
+                     c.description ||= 'Championship used for seed scenarios'
+                     c.min_players_per_team = players_per_team
+                     c.max_players_per_team = players_per_team
+                     c.save!
+                   end
+                 end
+  print_item "Championship ready", championship.name, "Players per team: #{players_per_team}"
 
-        winner_text = if is_draw
-                        "Draw"
-        else
-                        winning_team.name
-        end
+  print_header "CREATING PLAYERS"
+  players = if defined?(FactoryBot)
+              FactoryBot.create_list(:player, 18)
+            else
+              18.times.map { |i| Player.create!(name: "Jogador ##{i + 1}") }
+            end
+  print_item "Players created", "Total: #{players.size}"
 
-        print_subitem "Match #{match.id} finalized",
-                      "Score: #{team1_goals} x #{team2_goals}",
-                      "Winner: #{winner_text}",
-                      "Winner goals: #{winning_team ? (winning_team == team1 ? team1_goals : team2_goals) : 'N/A'}"
-      end
+  # Rodada 1: Auto-balanceamento e Finalização
+  print_header "ROUND 1 - AUTO-BALANCEAMENTO E FINALIZACAO"
+  round1 = if defined?(FactoryBot)
+             FactoryBot.create(:round, championship: championship)
+           else
+             Round.create!(name: '1ª Rodada - Auto-balanceamento', championship: championship, round_date: Date.today)
+           end
+  print_item "Round created", round1.name
+
+  teams1 = add_players_to_round(round1, players)
+  teams1.each do |team|
+    raise "Team #{team.name} has #{team.players.count} players, expected #{players_per_team}" if team.players.count != players_per_team
+  end
+
+  # Criar partidas para demonstrar diferentes resultados
+  t1_team1, t1_team2 = teams1.first(2)
+
+  finalize_match_with_stats(
+    round: round1,
+    team1: t1_team1,
+    team2: t1_team2,
+    team1_goals: 3,
+    team2_goals: 1,
+    name_suffix: 'Team1 wins'
+  )
+
+  finalize_match_with_stats(
+    round: round1,
+    team1: t1_team1,
+    team2: t1_team2,
+    team1_goals: 1,
+    team2_goals: 2,
+    name_suffix: 'Team2 wins'
+  )
+
+  finalize_match_with_stats(
+    round: round1,
+    team1: t1_team1,
+    team2: t1_team2,
+    team1_goals: 2,
+    team2_goals: 2,
+    name_suffix: 'Draw'
+  )
+
+  finalize_match_with_stats(
+    round: round1,
+    team1: t1_team1,
+    team2: t1_team2,
+    team1_goals: 1,
+    team2_goals: 0,
+    team2_own_goals: 1,
+    name_suffix: 'Own goals impact'
+  )
+
+  # Rodada 2: Estatísticas e Sequência Automática
+  print_header "ROUND 2 - ESTATISTICAS E SEQUENCIA AUTOMATICA"
+  round2 = if defined?(FactoryBot)
+             FactoryBot.create(:round, championship: championship)
+           else
+             Round.create!(name: '2ª Rodada - Estatisticas', championship: championship, round_date: Date.today)
+           end
+  print_item "Round created", round2.name
+
+  teams2 = add_players_to_round(round2, players)
+  t2_team1, t2_team2 = teams2.first(2)
+
+  finalize_match_with_stats(
+    round: round2,
+    team1: t2_team1,
+    team2: t2_team2,
+    team1_goals: 2,
+    team2_goals: 0,
+    name_suffix: 'Stats Match 1'
+  )
+
+  finalize_match_with_stats(
+    round: round2,
+    team1: t2_team1,
+    team2: t2_team2,
+    team1_goals: 0,
+    team2_goals: 1,
+    name_suffix: 'Stats Match 2'
+  )
+
+  stats = RoundStatistics.call(round_id: round2.id)
+  print_subitem "Round statistics summary",
+                "Players: #{stats.size}",
+                "Top scorer goals: #{stats.values.map { |s| s[:goals] }.max || 0}"
+
+  # Demonstrar NextMatchGenerator
+  if teams2.size >= 3
+    t2_team3 = teams2[2]
+    finalize_match_with_stats(
+      round: round2,
+      team1: t2_team1,
+      team2: t2_team3,
+      team1_goals: 2,
+      team2_goals: 1,
+      name_suffix: 'Sequencia 1'
+    )
+
+    suggestion = Rounds::NextMatchGenerator.call(round: round2, create_match: false)
+    if suggestion[:needs_winner_selection]
+      print_subitem "NextMatch suggestion",
+                    "Needs winner selection between: #{suggestion[:candidates].map { |c| c[:name] }.join(' vs ')}",
+                    "Next opponent: #{suggestion[:next_opponent][:name]}"
+    else
+      suggested = suggestion[:suggested_match]
+      print_subitem "NextMatch suggestion",
+                    "Suggested: #{suggested[:name]}"
     end
+  end
+
+  # Rodada 3: Goleiros Externos e Validações
+  print_header "ROUND 3 - GOLEIROS EXTERNOS E VALIDACOES"
+  round3 = if defined?(FactoryBot)
+             FactoryBot.create(:round, championship: championship)
+           else
+             Round.create!(name: '3ª Rodada - Goleiros e Assistencias', championship: championship, round_date: Date.today)
+           end
+  print_item "Round created", round3.name
+
+  teams3 = add_players_to_round(round3, players)
+  t3_team1, t3_team2, t3_team3 = teams3.first(3)
+
+  match_gk = Match.create!(
+    round: round3,
+    team_1: t3_team1,
+    team_2: t3_team2,
+    name: "#{t3_team1.name} vs #{t3_team2.name} - Goleiros externos"
+  )
+
+  if t3_team3.present?
+    create_goalkeeper_from_other_team(
+      match: match_gk,
+      target_team: t3_team1,
+      source_team: t3_team3
+    )
+  end
+
+  # Goleiro apenas goleiro (não joga na linha) - criar novo jogador para isso
+  keeper_only = if defined?(FactoryBot)
+                  FactoryBot.create(:player)
+                else
+                  Player.create!(name: 'Goleiro Exclusivo')
+                end
+  PlayerStat.create!(
+    player: keeper_only,
+    team: t3_team2,
+    match: match_gk,
+    goals: 0,
+    assists: 0,
+    own_goals: 0,
+    was_goalkeeper: true
+  )
+  print_subitem "Goalkeeper only",
+                "GK: #{keeper_only.name}",
+                "Team: #{t3_team2.name}"
+
+  # Validações de assistências
+  match_assists = Match.create!(
+    round: round3,
+    team_1: t3_team1,
+    team_2: t3_team2,
+    name: "#{t3_team1.name} vs #{t3_team2.name} - Assistencias"
+  )
+
+  scorer_valid = t3_team1.players.first
+  PlayerStat.create!(
+    player: scorer_valid,
+    team: t3_team1,
+    match: match_assists,
+    goals: 2,
+    assists: 2,
+    own_goals: 0,
+    was_goalkeeper: false
+  )
+  print_subitem "Valid assists",
+                "#{scorer_valid.name}",
+                "Goals: 2, Assists: 2"
+
+  own_goal_player = t3_team2.players.first
+  PlayerStat.create!(
+    player: own_goal_player,
+    team: t3_team2,
+    match: match_assists,
+    goals: 0,
+    assists: 0,
+    own_goals: 1,
+    was_goalkeeper: false
+  )
+  print_subitem "Valid own goal (no assist)",
+                "#{own_goal_player.name}",
+                "Own goals: 1, Assists: 0"
+
+  # Tentativas inválidas para demonstrar validações (não usam bang)
+  invalid1 = PlayerStat.new(
+    player: t3_team1.players.second,
+    team: t3_team1,
+    match: match_assists,
+    goals: 0,
+    assists: 1,
+    own_goals: 0,
+    was_goalkeeper: false
+  )
+  unless invalid1.save
+    print_subitem "Invalid assists (no goals)",
+                  invalid1.errors.full_messages.join(', ')
+  end
+
+  invalid2 = PlayerStat.new(
+    player: t3_team2.players.second,
+    team: t3_team2,
+    match: match_assists,
+    goals: 0,
+    assists: 1,
+    own_goals: 1,
+    was_goalkeeper: false
+  )
+  unless invalid2.save
+    print_subitem "Invalid assists on own goals",
+                  invalid2.errors.full_messages.join(', ')
   end
 
   print_header "FINAL CREATION REPORT"

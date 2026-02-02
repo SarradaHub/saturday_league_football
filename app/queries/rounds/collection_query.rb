@@ -21,8 +21,10 @@ module Rounds
       if includes.any?
         scope = apply_includes(scope, includes)
       else
-        # Use direct includes for simple default associations
-        scope = scope.includes(:matches, :championship)
+        # Minimal eager loading for list views (skip_nested will be true)
+        # Only load championship for basic round data
+        # Nested data (matches, players, teams) will only be loaded if explicitly requested via includes
+        scope = scope.includes(:championship)
       end
 
       # Apply pagination if specified

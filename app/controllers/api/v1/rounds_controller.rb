@@ -70,12 +70,22 @@ module Api
 
       def create_next_match
         round = find_round_for_sequence
-        match = Rounds::NextMatchGenerator.call(
+        result = Rounds::NextMatchGenerator.call(
           round: round,
           winner_team_id: params[:winner_team_id],
           create_match: true
         )
-        render json: MatchPresenter.new(match).as_json, status: :created
+        
+        # Result can be a Match (old format) or a hash with match and queue (new format)
+        if result.is_a?(Hash) && result[:match]
+          render json: {
+            match: MatchPresenter.new(result[:match]).as_json,
+            queue: result[:queue]
+          }, status: :created
+        else
+          # Fallback for old format (should not happen, but keeping for safety)
+          render json: MatchPresenter.new(result).as_json, status: :created
+        end
       rescue StandardError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
       end

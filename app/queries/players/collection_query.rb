@@ -2,8 +2,9 @@
 
 module Players
   class CollectionQuery < ApplicationQuery
-    def initialize(championship_id: nil, includes: [], page: nil, per_page: nil, user_id: nil)
+    def initialize(championship_id: nil, round_id: nil, includes: [], page: nil, per_page: nil, user_id: nil)
       @championship_id = championship_id
+      @round_id = round_id
       @includes = includes
       @page = page
       @per_page = per_page
@@ -14,11 +15,17 @@ module Players
       scope = Player.all
       scope = scope.in_championship(championship_id) if championship_id.present?
 
-      # Filter by user_id via championship if provided
-      if user_id.present?
+      # Filter by round_id and/or user_id via championship
+      if round_id.present? || user_id.present?
+        # Always join through player_rounds -> round -> championship to support both filters
         scope = scope.joins(player_rounds: { round: :championship })
-                      .where(championships: { user_id: user_id })
-                      .distinct
+        
+        conditions = {}
+        conditions[:player_rounds] = { round_id: round_id } if round_id.present?
+        conditions[:championships] = { user_id: user_id } if user_id.present?
+        
+        scope = scope.where(conditions) if conditions.any?
+        scope = scope.distinct
       end
 
       # Apply includes - add default includes for PlayerPresenter when used in lists
@@ -26,7 +33,8 @@ module Players
         scope = apply_includes(scope, includes)
       else
         # Use direct includes for simple default associations
-        scope = scope.includes(:player_stats, :rounds)
+        # Load rounds through player_rounds to ensure proper eager loading
+        scope = scope.includes(:player_stats, { player_rounds: :round })
       end
 
       scope = scope.order(:name)
@@ -42,7 +50,7 @@ module Players
 
     private
 
-    attr_reader :championship_id, :includes, :page, :per_page, :user_id
+    attr_reader :championship_id, :round_id, :includes, :page, :per_page, :user_id
 
     def apply_includes(scope, includes_list)
       includes_hash = {}

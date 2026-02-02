@@ -14,4 +14,6 @@ class Team < ApplicationRecord
   accepts_nested_attributes_for :player_teams, allow_destroy: true
 
   validates_presence_of :name
+
+  scope :not_blocked, -> { where(is_blocked: false) }
 end

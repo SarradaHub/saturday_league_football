@@ -36,7 +36,16 @@ module Api
         serialized_items = if serializer_class
                              items.map { |item| serializer_class.new(item).as_json }
         elsif presenter_class
-                             items.map { |item| presenter_class.new(item).as_json(include_players: includes_list.include?('players'), include_rounds: includes_list.include?('rounds')) }
+                             # For RoundPresenter in list views, skip nested data by default for performance
+                             # Only include nested data if explicitly requested via includes
+                             skip_nested = presenter_class == RoundPresenter && !includes_list.any?
+                             items.map do |item|
+                               presenter_class.new(item).as_json(
+                                 include_players: includes_list.include?('players'),
+                                 include_rounds: includes_list.include?('rounds'),
+                                 skip_nested: skip_nested
+                               )
+                             end
         else
                              items.map(&:as_json)
         end

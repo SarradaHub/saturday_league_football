@@ -13,7 +13,8 @@ class MatchStatisticsPresenter < ApplicationPresenter
       goals: goals_for(team, opponent),
       goal_scorers: grouped_totals(team, :goals),
       assists: grouped_totals(team, :assists),
-      own_goals: grouped_totals(team, :own_goals)
+      own_goals: grouped_totals(team, :own_goals),
+      goalkeepers: goalkeepers_for(team)
     }
   end
 
@@ -43,5 +44,14 @@ class MatchStatisticsPresenter < ApplicationPresenter
   def team_stats(team)
     @team_stats ||= {}
     @team_stats[team.id] ||= Matches::PlayerStatsQuery.call(match: resource, team: team)
+  end
+
+  def goalkeepers_for(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.was_goalkeeper == true }
+      .map { |stat| stat.player.name }
+      .uniq
   end
 end

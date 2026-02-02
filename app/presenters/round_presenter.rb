@@ -3,18 +3,24 @@
 class RoundPresenter < ApplicationPresenter
   delegate :id, :name, :round_date, :championship_id, :created_at, :updated_at, to: :resource
 
-  def as_json(*)
-    {
+  def as_json(options = {})
+    result = {
       id: id,
       name: name,
       round_date: round_date,
       championship_id: championship_id,
       created_at: created_at,
-      updated_at: updated_at,
-      matches: serialized_matches,
-      players: serialized_players,
-      teams: serialized_teams
+      updated_at: updated_at
     }
+
+    # Only serialize nested data if not explicitly skipped (for list views)
+    unless options[:skip_nested]
+      result[:matches] = serialized_matches
+      result[:players] = serialized_players
+      result[:teams] = serialized_teams
+    end
+
+    result
   end
 
   def matches
@@ -44,10 +50,12 @@ class RoundPresenter < ApplicationPresenter
   end
 
   def serialized_players
-    players.map { |player| PlayerPresenter.new(player).as_json }
+    # Use PlayerSerializer to avoid circular reference (players -> rounds -> players)
+    # RoundPresenter already provides rounds, so we don't need rounds in each player
+    players.map { |player| PlayerSerializer.new(player).as_json }
   end
 
   def serialized_teams
-    teams.map { |team| TeamPresenter.new(team).as_json }
+    teams.map { |team| TeamPresenter.new(team).as_json(skip_matches: true) }
   end
 end

@@ -3,16 +3,20 @@
 class TeamPresenter < ApplicationPresenter
   delegate :id, :name, :round_id, :created_at, :updated_at, to: :resource
 
-  def as_json(*)
-    {
+  def as_json(options = {})
+    result = {
       id: id,
       name: name,
       round_id: round_id,
       created_at: created_at,
       updated_at: updated_at,
-      matches: serialized_matches,
-      players: serialized_players
+      players: serialized_players(options)
     }
+
+    # Only serialize matches if not explicitly skipped (prevents circular reference in round context)
+    result[:matches] = serialized_matches unless options[:skip_matches]
+
+    result
   end
 
   def matches
@@ -29,7 +33,12 @@ class TeamPresenter < ApplicationPresenter
     matches.map { |match| MatchPresenter.new(match).as_json }
   end
 
-  def serialized_players
-    players.map { |player| PlayerPresenter.new(player).as_json }
+  def serialized_players(options = {})
+    # Use PlayerSerializer in nested contexts to avoid circular references and reduce payload
+    if options[:use_serializer] || options[:skip_rounds]
+      players.map { |player| PlayerSerializer.new(player).as_json }
+    else
+      players.map { |player| PlayerPresenter.new(player).as_json(skip_rounds: true, skip_player_stats: true) }
+    end
   end
 end
