@@ -27,6 +27,10 @@ class TeamPresenter < ApplicationPresenter
     resource.player_teams.includes(:player).order(:created_at).map(&:player)
   end
 
+  def player_teams_ordered
+    resource.player_teams.includes(:player).order(:created_at)
+  end
+
   private
 
   def serialized_matches
@@ -34,11 +38,15 @@ class TeamPresenter < ApplicationPresenter
   end
 
   def serialized_players(options = {})
-    # Use PlayerSerializer in nested contexts to avoid circular references and reduce payload
+    # Include player_team_id so the frontend can remove a player via nested attributes (_destroy)
     if options[:use_serializer] || options[:skip_rounds]
-      players.map { |player| PlayerSerializer.new(player).as_json }
+      player_teams_ordered.map do |pt|
+        PlayerSerializer.new(pt.player).as_json.merge(player_team_id: pt.id)
+      end
     else
-      players.map { |player| PlayerPresenter.new(player).as_json(skip_rounds: true, skip_player_stats: true) }
+      player_teams_ordered.map do |pt|
+        PlayerPresenter.new(pt.player).as_json(skip_rounds: true, skip_player_stats: true).merge(player_team_id: pt.id)
+      end
     end
   end
 end

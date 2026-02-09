@@ -11,8 +11,8 @@ RSpec.describe RoundPresenter do
   let(:round) { FactoryBot.create(:round, championship: championship, name: 'Round 1', round_date: Date.new(2025, 1, 1)) }
   let(:team1) { FactoryBot.create(:team, round: round) }
   let(:team2) { FactoryBot.create(:team, round: round) }
-  let(:player1) { FactoryBot.create(:player, name: 'Player 1') }
-  let(:player2) { FactoryBot.create(:player, name: 'Player 2') }
+  let(:player1) { FactoryBot.create(:player, first_name: 'Player', last_name: '1') }
+  let(:player2) { FactoryBot.create(:player, first_name: 'Player', last_name: '2') }
 
   describe 'delegates' do
     it 'delegates id to resource' do
@@ -116,7 +116,7 @@ RSpec.describe RoundPresenter do
       it 'serializes players using PlayerPresenter' do
         player_json = json[:players].first
         expect(player_json).to have_key(:id)
-        expect(player_json).to have_key(:name)
+        expect(player_json).to have_key(:display_name)
       end
 
       it 'returns distinct players' do
@@ -254,6 +254,16 @@ RSpec.describe RoundPresenter do
       players = presenter.players.to_a
       player_ids = players.map(&:id)
       expect(player_ids.uniq.length).to eq(player_ids.length)
+    end
+  end
+
+  describe '#serialized_players order' do
+    it 'returns players ordered by player_rounds.created_at (inscription order)' do
+      # Add player2 first, then player1 (so player2 has earlier player_round.created_at)
+      pr2 = round.player_rounds.create!(player: player2)
+      pr1 = round.player_rounds.create!(player: player1)
+      json = presenter.as_json
+      expect(json[:players].map { |p| p[:id] }).to eq([player2.id, player1.id])
     end
   end
 

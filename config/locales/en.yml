@@ -32,8 +32,12 @@ en:
   activerecord:
     errors:
       models:
+        player:
+          name_required: "must have at least one of first name, last name or nickname"
         player_stat:
           attributes:
             assists:
               assists_require_goals: "só pode existir se houver gol (assistências ≤ gols do time)"
               no_assists_on_own_goals: "gol contra não tem assistência"
+            was_goalkeeper:
+              goalkeeper_not_line_player: "goleiro não pode ser jogador de linha na mesma partida"

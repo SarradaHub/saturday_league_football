@@ -24,6 +24,8 @@ module Matches
         draw: is_draw
       )
 
+      run_redistribution_after_finalize(match)
+
       match
     end
 
@@ -43,6 +45,12 @@ module Matches
       end
 
       team_goals + opponent_own_goals
+    end
+
+    def run_redistribution_after_finalize(finalized_match)
+      Rounds::NextMatchGenerator.redistribute_after_finalize(finalized_match)
+    rescue Rounds::NextMatchGenerator::NotEnoughTeamsError
+      nil
     end
   end
 end

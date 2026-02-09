@@ -2,6 +2,8 @@
 
 FactoryBot.define do
   factory :player do
-    name { "#{Faker::Sports::Football.player} #{Faker::Sports::Football.position}" }
+    first_name { Faker::Name.first_name }
+    last_name { Faker::Name.last_name }
+    nickname { nil }
   end
 end

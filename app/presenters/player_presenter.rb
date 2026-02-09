@@ -1,12 +1,16 @@
 # frozen_string_literal: true
 
 class PlayerPresenter < ApplicationPresenter
-  delegate :id, :name, :created_at, :updated_at, to: :resource
+  delegate :id, :display_name, :created_at, :updated_at, to: :resource
+  delegate :first_name, :last_name, :nickname, to: :resource
 
   def as_json(options = {})
     result = {
       id: id,
-      name: name,
+      display_name: display_name,
+      first_name: first_name,
+      last_name: last_name,
+      nickname: nickname,
       total_goals: total_goals,
       total_assists: total_assists,
       total_own_goals: total_own_goals,
@@ -26,15 +30,10 @@ class PlayerPresenter < ApplicationPresenter
 
   def rounds
     @rounds ||= begin
-      # Priority 1: Check if player_rounds are loaded (most common case with eager loading)
       if resource.association(:player_rounds).loaded?
-        # Extract rounds from loaded player_rounds
-        # This works when eager loading includes({ player_rounds: :round })
         resource.player_rounds.map(&:round).compact.uniq
-      # Priority 2: Check if rounds association is directly loaded
       elsif resource.association(:rounds).loaded?
         resource.rounds
-      # Priority 3: Fallback to loading rounds
       else
         resource.rounds.load
       end
@@ -58,15 +57,11 @@ class PlayerPresenter < ApplicationPresenter
   end
 
   def total_matches
-    # Use loaded associations if available to avoid N+1 queries
     team_ids = if resource.association(:player_teams).loaded?
-                 # Teams are loaded through player_teams, extract team_ids from loaded association
                  resource.player_teams.map(&:team_id).compact.uniq
                elsif resource.association(:teams).loaded?
-                 # Teams association is directly loaded
                  resource.teams.map(&:id).compact.uniq
                else
-                 # Fallback to query if not loaded
                  resource.teams.pluck(:id)
                end
 

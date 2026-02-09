@@ -18,7 +18,7 @@ end
 def add_players_to_round(round, players)
   players.each do |player|
     Players::AddToRound.call(player: player, round_id: round.id)
-    print_subitem "Player added to round", "Player: #{player.name}", "Round: #{round.name}"
+    print_subitem "Player added to round", "Player: #{player.display_name}", "Round: #{round.name}"
   end
   # Auto-balanceamento via callback de PlayerRound (RoundTeamGenerator)
   round.reload
@@ -111,7 +111,7 @@ def create_goalkeeper_from_other_team(match:, target_team:, source_team:)
     was_goalkeeper: true
   )
   print_subitem "External goalkeeper",
-                "GK: #{external_player.name}",
+                "GK: #{external_player.display_name}",
                 "Plays for: #{source_team.name}",
                 "Acts as GK for: #{target_team.name}"
 end
@@ -150,15 +150,22 @@ begin
                  end
   print_item "Championship ready", championship.name, "Players per team: #{players_per_team}"
 
+  # RoundTeamGenerator reserves 1 slot per team for goalkeeper (slots = max_players_per_team - 1).
+  # So we need TOTAL_PLAYERS = TEAM_COUNT * SLOTS_PER_TEAM for full teams after balance.
+  TEAM_COUNT = 4
+  SLOTS_PER_TEAM = players_per_team - RoundTeamGenerator::RESERVED_SLOTS_FOR_GOALKEEPER
+  TOTAL_PLAYERS = TEAM_COUNT * SLOTS_PER_TEAM
+
   print_header "CREATING PLAYERS"
   players = if defined?(FactoryBot)
-              FactoryBot.create_list(:player, 18)
+              FactoryBot.create_list(:player, TOTAL_PLAYERS)
             else
-              18.times.map { |i| Player.create!(name: "Jogador ##{i + 1}") }
+              TOTAL_PLAYERS.times.map { |i| Player.create!(first_name: "Jogador", last_name: "##{i + 1}") }
             end
   print_item "Players created", "Total: #{players.size}"
 
-  # Rodada 1: Auto-balanceamento e Finalização
+  # Rodada 1: Auto-balanceamento e Finalização.
+  # Balanceamento deixa 1 vaga por time para goleiro (regra do RoundTeamGenerator); validação usa 5 por time.
   print_header "ROUND 1 - AUTO-BALANCEAMENTO E FINALIZACAO"
   round1 = if defined?(FactoryBot)
              FactoryBot.create(:round, championship: championship)
@@ -168,8 +175,9 @@ begin
   print_item "Round created", round1.name
 
   teams1 = add_players_to_round(round1, players)
+  expected_after_balance = championship.max_players_per_team - RoundTeamGenerator::RESERVED_SLOTS_FOR_GOALKEEPER
   teams1.each do |team|
-    raise "Team #{team.name} has #{team.players.count} players, expected #{players_per_team}" if team.players.count != players_per_team
+    raise "Team #{team.name} has #{team.players.count} players, expected #{expected_after_balance}" if team.players.count != expected_after_balance
   end
 
   # Criar partidas para demonstrar diferentes resultados
@@ -314,7 +322,7 @@ begin
     was_goalkeeper: true
   )
   print_subitem "Goalkeeper only",
-                "GK: #{keeper_only.name}",
+                "GK: #{keeper_only.display_name}",
                 "Team: #{t3_team2.name}"
 
   # Validações de assistências
@@ -336,7 +344,7 @@ begin
     was_goalkeeper: false
   )
   print_subitem "Valid assists",
-                "#{scorer_valid.name}",
+                "#{scorer_valid.display_name}",
                 "Goals: 2, Assists: 2"
 
   own_goal_player = t3_team2.players.first
@@ -350,7 +358,7 @@ begin
     was_goalkeeper: false
   )
   print_subitem "Valid own goal (no assist)",
-                "#{own_goal_player.name}",
+                "#{own_goal_player.display_name}",
                 "Own goals: 1, Assists: 0"
 
   # Tentativas inválidas para demonstrar validações (não usam bang)

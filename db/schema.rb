@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_02_152655) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_09_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -53,11 +53,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_02_152655) do
   end
 
   create_table "player_rounds", force: :cascade do |t|
+    t.boolean "blocked", default: false, null: false
     t.datetime "created_at", null: false
+    t.boolean "goalkeeper_only", default: false, null: false
     t.boolean "is_deleted", default: false, null: false
     t.bigint "player_id"
     t.bigint "round_id"
     t.datetime "updated_at", null: false
+    t.index ["blocked"], name: "index_player_rounds_on_blocked"
+    t.index ["goalkeeper_only"], name: "index_player_rounds_on_goalkeeper_only"
     t.index ["is_deleted"], name: "index_player_rounds_on_is_deleted"
     t.index ["player_id", "round_id"], name: "index_player_rounds_on_player_id_and_round_id", unique: true
     t.index ["player_id"], name: "index_player_rounds_on_player_id"
@@ -97,12 +101,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_02_152655) do
 
   create_table "players", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "first_name"
     t.boolean "is_deleted", default: false, null: false
-    t.string "name", null: false
+    t.string "last_name"
+    t.string "nickname"
     t.integer "player_stats_count", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index ["first_name"], name: "index_players_on_first_name"
     t.index ["is_deleted"], name: "index_players_on_is_deleted"
-    t.index ["name"], name: "index_players_on_name"
+    t.index ["last_name"], name: "index_players_on_last_name"
+    t.index ["nickname"], name: "index_players_on_nickname"
     t.index ["player_stats_count"], name: "index_players_on_player_stats_count"
   end
 

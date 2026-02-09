@@ -105,7 +105,8 @@ perform_get(:show, params: { id: player.id })
       let(:valid_params) do
         {
           player: {
-            name: 'New Player'
+            first_name: 'New',
+            last_name: 'Player'
           }
         }
       end
@@ -122,7 +123,7 @@ perform_get(:show, params: { id: player.id })
 
       it 'returns created player' do
         perform_post(:create, params: valid_params)
-        expect(json_response['name']).to eq('New Player')
+        expect(json_response['display_name']).to eq('New Player')
       end
     end
 
@@ -130,7 +131,9 @@ perform_get(:show, params: { id: player.id })
       let(:invalid_params) do
         {
           player: {
-            name: ''
+            first_name: '',
+            last_name: '',
+            nickname: ''
           }
         }
       end
@@ -148,7 +151,7 @@ perform_get(:show, params: { id: player.id })
   end
 
   describe '#update' do
-    let(:player) { FactoryBot.create(:player, name: 'Old Name') }
+    let(:player) { FactoryBot.create(:player, first_name: 'Old', last_name: 'Name') }
     let(:round) { FactoryBot.create(:round, championship: championship) }
 
     before do
@@ -156,30 +159,30 @@ perform_get(:show, params: { id: player.id })
     end
 
     context 'with valid params' do
-      before { patch :update, params: { id: player.id, player: { name: 'Updated Name' } }, format: :json }
+      before { patch :update, params: { id: player.id, player: { first_name: 'Updated', last_name: 'Name' } }, format: :json }
 
       it 'returns ok' do
         expect(response).to have_http_status(:ok)
       end
 
       it 'updates the player' do
-        expect(player.reload.name).to eq('Updated Name')
+        expect(player.reload.display_name).to eq('Updated Name')
       end
 
       it 'returns updated player' do
-        expect(json_response['name']).to eq('Updated Name')
+        expect(json_response['display_name']).to eq('Updated Name')
       end
     end
 
     context 'with invalid params' do
-      before { patch :update, params: { id: player.id, player: { name: '' } }, format: :json }
+      before { patch :update, params: { id: player.id, player: { first_name: '', last_name: '', nickname: '' } }, format: :json }
 
       it 'returns unprocessable_entity' do
         expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'does not update the player' do
-        expect(player.reload.name).to eq('Old Name')
+        expect(player.reload.display_name).to eq('Old Name')
       end
     end
   end

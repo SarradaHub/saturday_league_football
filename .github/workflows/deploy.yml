@@ -29,6 +29,3 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
-
-      # TODO: Add deployment step(s) for your platform
-

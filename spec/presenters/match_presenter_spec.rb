@@ -38,8 +38,8 @@ RSpec.describe MatchPresenter do
     it 'returns structured breakdown for each team' do
       stats = presenter.as_json[:statistics]
 
-      expect(stats[:team_1][:goal_scorers]).to include(team_1_player.name => 2)
-      expect(stats[:team_2][:own_goals]).to include(team_2_player.name => 1)
+      expect(stats[:team_1][:goal_scorers]).to include(team_1_player.display_name => 2)
+      expect(stats[:team_2][:own_goals]).to include(team_2_player.display_name => 1)
       expect(stats[:scoreboard]).to eq({ team_1: 3, team_2: 1 })
     end
   end
@@ -145,7 +145,7 @@ RSpec.describe MatchPresenter do
     context 'with valid hash' do
       it 'converts hash to array of player serializations' do
         # team_1_player is already added in main before block
-        hash = { team_1_player.name => 2 }
+        hash = { team_1_player.display_name => 2 }
         result = presenter.send(:hash_to_player_array, team_1, hash)
         expect(result).to be_an(Array)
         expect(result.length).to eq(2)
@@ -177,7 +177,7 @@ RSpec.describe MatchPresenter do
     context 'when player is not found' do
       it 'skips players not found in team' do
         # team_1_player is already added in main before block
-        hash = { 'Non-existent Player' => 1, team_1_player.name => 1 }
+        hash = { 'Non-existent Player' => 1, team_1_player.display_name => 1 }
         result = presenter.send(:hash_to_player_array, team_1, hash)
         expect(result.length).to eq(1)
         expect(result.first[:id]).to eq(team_1_player.id)
@@ -186,7 +186,7 @@ RSpec.describe MatchPresenter do
 
     context 'with count zero' do
       it 'returns empty array when count is 0' do
-        hash = { team_1_player.name => 0 }
+        hash = { team_1_player.display_name => 0 }
         result = presenter.send(:hash_to_player_array, team_1, hash)
         expect(result).to eq([])
       end
@@ -197,14 +197,14 @@ RSpec.describe MatchPresenter do
     context 'when team and name are present' do
       it 'finds player by name' do
         # team_1_player is already added in main before block
-        result = presenter.send(:find_player_by_name, team_1, team_1_player.name)
+        result = presenter.send(:find_player_by_name, team_1, team_1_player.display_name)
         expect(result).to eq(team_1_player)
       end
     end
 
     context 'when team is blank' do
       it 'returns nil' do
-        result = presenter.send(:find_player_by_name, nil, team_1_player.name)
+        result = presenter.send(:find_player_by_name, nil, team_1_player.display_name)
         expect(result).to be_nil
       end
     end

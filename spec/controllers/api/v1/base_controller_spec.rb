@@ -45,7 +45,7 @@ end
 
 # Test BaseController through a real controller that uses it
 RSpec.describe Api::V1::BaseController, type: :controller do
-  let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
+  let(:current_user) { FactoryBot.create(:user) }
   let(:championship) { FactoryBot.create(:championship, user: current_user) }
   let(:round) { FactoryBot.create(:round, championship: championship) }
   let(:json_response) { JSON.parse(response.body) }

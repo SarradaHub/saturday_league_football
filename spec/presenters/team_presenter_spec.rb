@@ -9,8 +9,8 @@ RSpec.describe TeamPresenter do
 
   let(:round) { FactoryBot.create(:round, :with_championship) }
   let(:team) { FactoryBot.create(:team, round: round, name: 'Test Team') }
-  let(:player1) { FactoryBot.create(:player, name: 'Player 1') }
-  let(:player2) { FactoryBot.create(:player, name: 'Player 2') }
+  let(:player1) { FactoryBot.create(:player, first_name: 'Player', last_name: '1') }
+  let(:player2) { FactoryBot.create(:player, first_name: 'Player', last_name: '2') }
 
   describe 'delegates' do
     it 'delegates id to resource' do
@@ -110,7 +110,7 @@ RSpec.describe TeamPresenter do
       it 'serializes players using PlayerPresenter' do
         player_json = json[:players].first
         expect(player_json).to have_key(:id)
-        expect(player_json).to have_key(:name)
+        expect(player_json).to have_key(:display_name)
       end
 
       it 'orders players by created_at' do

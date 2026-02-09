@@ -43,10 +43,10 @@ RSpec.describe 'Match Flow Integration', type: :request, slow: true do
     end
     let(:players) do
       [
-        FactoryBot.create(:player, name: 'Player 1'),
-        FactoryBot.create(:player, name: 'Player 2'),
-        FactoryBot.create(:player, name: 'Player 3'),
-        FactoryBot.create(:player, name: 'Player 4')
+        FactoryBot.create(:player, first_name: 'Player', last_name: '1'),
+        FactoryBot.create(:player, first_name: 'Player', last_name: '2'),
+        FactoryBot.create(:player, first_name: 'Player', last_name: '3'),
+        FactoryBot.create(:player, first_name: 'Player', last_name: '4')
       ]
     end
 

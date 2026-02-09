@@ -54,7 +54,7 @@ RSpec.describe 'API contracts for core resources', type: :request do
 
   it 'validates list contracts for core resources' do
     expect_list_contract('/api/v1/championships', %w[id name total_players round_total created_at updated_at])
-    expect_list_contract('/api/v1/players', %w[id name total_goals total_assists total_own_goals total_matches created_at updated_at])
+    expect_list_contract('/api/v1/players', %w[id display_name total_goals total_assists total_own_goals total_matches created_at updated_at])
     expect_list_contract('/api/v1/rounds', %w[id name round_date championship_id created_at updated_at])
     expect_list_contract('/api/v1/teams', %w[id name round_id created_at updated_at])
     expect_list_contract('/api/v1/matches', %w[id name round_id draw team_1_goals team_2_goals created_at updated_at])
@@ -64,7 +64,7 @@ RSpec.describe 'API contracts for core resources', type: :request do
 
   it 'validates detail contracts for core resources' do
     expect_show_contract("/api/v1/championships/#{championship.id}", %w[id name total_players round_total created_at updated_at])
-    expect_show_contract("/api/v1/players/#{player.id}", %w[id name total_goals total_assists total_own_goals total_matches created_at updated_at])
+    expect_show_contract("/api/v1/players/#{player.id}", %w[id display_name total_goals total_assists total_own_goals total_matches created_at updated_at])
     expect_show_contract("/api/v1/rounds/#{round.id}", %w[id name round_date championship_id created_at updated_at])
     expect_show_contract("/api/v1/teams/#{team_1.id}", %w[id name round_id created_at updated_at])
     expect_show_contract("/api/v1/matches/#{match.id}", %w[id name round_id draw team_1_goals team_2_goals created_at updated_at])

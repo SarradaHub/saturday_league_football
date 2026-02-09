@@ -6,6 +6,8 @@ class PlayerRound < ApplicationRecord
   belongs_to :player
   belongs_to :round, counter_cache: :players_count
 
+  attribute :goalkeeper_only, :boolean, default: false
+
   after_commit :auto_balance_round_teams, on: :create
   after_commit :update_championship_players_count, on: :create
   after_destroy :auto_balance_round_teams
@@ -17,6 +19,7 @@ class PlayerRound < ApplicationRecord
     return if destroyed_by_association
     return unless round.present?
     return if round.destroyed? || round.marked_for_destruction?
+    return if respond_to?(:goalkeeper_only) && goalkeeper_only?
 
     RoundTeamGenerator.call(round)
   end

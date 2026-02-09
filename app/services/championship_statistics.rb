@@ -1,19 +1,20 @@
 # frozen_string_literal: true
 
-class RoundStatistics < ApplicationService
-  def initialize(round_id:)
-    @round_id = round_id
+class ChampionshipStatistics < ApplicationService
+  def initialize(championship_id:)
+    @championship_id = championship_id
   end
 
   def call
-    round = Round.find(round_id)
-    matches = round.matches.includes(:team_1, :team_2)
-    player_ids = round.player_rounds.pluck(:player_id).uniq
+    championship = Championship.find(championship_id)
+    rounds = championship.rounds.includes(:matches, :player_rounds)
+    match_ids = rounds.flat_map { |r| r.matches.pluck(:id) }.uniq
+    player_ids = rounds.flat_map { |r| r.player_rounds.pluck(:player_id) }.uniq
 
-    return {} if player_ids.empty?
+    return {} if match_ids.empty? || player_ids.empty?
 
-    match_ids = matches.pluck(:id)
     player_stats = PlayerStat.where(match_id: match_ids, player_id: player_ids)
+    matches = Match.where(id: match_ids).includes(:team_1, :team_2)
 
     stats_by_player = {}
     player_ids.each do |player_id|
@@ -25,7 +26,7 @@ class RoundStatistics < ApplicationService
       stats_by_player[player_id] = {
         player: {
           id: player.id,
-          name: player.display_name
+          display_name: player.display_name
         },
         goals: stats.sum(:goals),
         assists: stats.sum(:assists),
@@ -43,7 +44,7 @@ class RoundStatistics < ApplicationService
 
   private
 
-  attr_reader :round_id
+  attr_reader :championship_id
 
   def calculate_match_results(player_id, matches, player_stats)
     wins = 0

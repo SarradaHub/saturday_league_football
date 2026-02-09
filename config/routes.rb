@@ -19,17 +19,26 @@ Rails.application.routes.draw do
       get 'auth/me', to: 'auth#me'
       get 'auth/validate', to: 'auth#validate'
       post 'auth/validate', to: 'auth#validate'
-      resources :championships, defaults: { format: :json }
+      resources :championships, defaults: { format: :json } do
+        member do
+          get :statistics
+        end
+      end
       resources :rounds, defaults: { format: :json } do
         member do
           get :statistics
           post :suggest_next_match
           post :create_next_match
+          post :substitute_player
+          post :rebalance_teams
+          delete :remove_player
+          post :toggle_player_block
         end
       end
       resources :matches, defaults: { format: :json } do
         member do
           post :finalize
+          post :substitute_player
         end
       end
       resources :teams, defaults: { format: :json }
@@ -42,6 +51,7 @@ Rails.application.routes.draw do
       resources :player_stats, defaults: { format: :json } do
         get 'match/:match_id', action: :by_match, on: :collection
         post 'match/:match_id/bulk', action: :bulk_update, on: :collection
+        post 'match/:match_id/goalkeepers', action: :add_goalkeeper, on: :collection
       end
 
       match '*any', via: :options, to: ->(_) { [204, { 'Content-Type' => 'text/plain' }, []] }

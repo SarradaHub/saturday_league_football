@@ -206,7 +206,7 @@ RSpec.describe ChampionshipPresenter do
     it 'includes player fields' do
       expect(serialized.first).to be_a(Hash)
       expect(serialized.first[:id]).to eq(player.id)
-      expect(serialized.first[:name]).to eq(player.name)
+      expect(serialized.first[:display_name]).to eq(player.display_name)
     end
   end
 

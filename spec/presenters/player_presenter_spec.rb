@@ -7,15 +7,15 @@ require 'rails_helper'
 RSpec.describe PlayerPresenter do
   subject(:presenter) { described_class.new(player) }
 
-  let(:player) { FactoryBot.create(:player, name: 'John Doe') }
+  let(:player) { FactoryBot.create(:player, first_name: 'John', last_name: 'Doe') }
 
   describe 'delegates' do
     it 'delegates id to resource' do
       expect(presenter.id).to eq(player.id)
     end
 
-    it 'delegates name to resource' do
-      expect(presenter.name).to eq('John Doe')
+    it 'delegates display_name to resource' do
+      expect(presenter.display_name).to eq('John Doe')
     end
 
     it 'delegates created_at to resource' do
@@ -42,8 +42,8 @@ RSpec.describe PlayerPresenter do
       expect(json[:id]).to eq(player.id)
     end
 
-    it 'includes name' do
-      expect(json[:name]).to eq('John Doe')
+    it 'includes display_name' do
+      expect(json[:display_name]).to eq('John Doe')
     end
 
     it 'includes totals' do

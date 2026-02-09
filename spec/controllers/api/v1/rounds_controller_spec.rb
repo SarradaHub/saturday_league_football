@@ -195,6 +195,26 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
     end
   end
 
+  describe '#remove_player' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:player) { FactoryBot.create(:player, first_name: 'Player', last_name: 'to remove') }
+    let!(:player_round) { FactoryBot.create(:player_round, round: round, player: player) }
+
+    it 'removes the player from the round and returns no content' do
+      expect {
+        delete :remove_player, params: { id: round.id, player_id: player.id }, format: :json
+      }.to change(PlayerRound, :count).by(-1)
+      expect(response).to have_http_status(:no_content)
+    end
+
+    it 'returns unprocessable when player is not in round' do
+      other_player = FactoryBot.create(:player, first_name: 'Other', last_name: nil)
+      delete :remove_player, params: { id: round.id, player_id: other_player.id }, format: :json
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)['errors']).to be_present
+    end
+  end
+
   describe '#statistics' do
     let(:round) { FactoryBot.create(:round, championship: championship) }
     let(:teams) { FactoryBot.create_list(:team, 2, round: round) }
@@ -257,8 +277,8 @@ perform_get(:statistics, params: { id: round.id })
 
     it 'creates the match' do
       expect(response).to have_http_status(:created)
-      expect(json_response['team_1']['id']).to eq(team_1.id)
-      expect(json_response['team_2']['id']).to eq(team_2.id)
+      expect(json_response['match']['team_1']['id']).to eq(team_1.id)
+      expect(json_response['match']['team_2']['id']).to eq(team_2.id)
     end
   end
 end

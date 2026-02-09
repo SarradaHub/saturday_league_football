@@ -56,11 +56,12 @@ RSpec.describe Rounds::NextMatchGenerator do
 
       create(:match, round: round, team_1: team_1, team_2: team_2, winning_team_id: team_1.id, draw: false)
 
-      match = described_class.call(round: round, create_match: true)
+      result = described_class.call(round: round, create_match: true)
+      match = result.is_a?(Hash) ? result[:match] : result
 
       expect(match.team_1_id).to eq(team_1.id)
       expect(match.team_2_id).to eq(team_3.id)
-      expect(team_3.reload.players.count).to eq(3)
+      expect(team_3.reload.players.count).to eq(2)
     end
 
     it 'advances to the next two teams on draw with two full teams waiting' do

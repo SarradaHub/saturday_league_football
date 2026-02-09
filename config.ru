@@ -4,5 +4,8 @@
 
 require_relative 'config/environment'
 
+# Enable gzip compression for responses
+use Rack::Deflater
+
 run Rails.application
 Rails.application.load_server

@@ -30,7 +30,7 @@ RSpec.describe PlayerTeam, type: :model do
       team_membership = described_class.create!(player:, team:)
 
       expect(team_membership.destroy).to be_falsey
-      expect(team_membership.errors[:team]).to include(I18n.t('errors.messages.greater_than_or_equal_to', count: championship.min_players_per_team))
+      expect(team_membership.errors[:team]).to include("deve ter no mínimo #{championship.min_players_per_team} jogadores")
     end
   end
 end

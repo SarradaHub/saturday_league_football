@@ -3,6 +3,7 @@
 module PlayerStats
   class BulkUpsert < ApplicationService
     class InvalidAssistsError < StandardError; end
+    class InvalidGoalkeeperError < StandardError; end
 
     def initialize(match_id:, payload:)
       @match_id = match_id
@@ -11,6 +12,7 @@ module PlayerStats
 
     def call
       validate_assists_rules!
+      validate_goalkeeper_rules!
       ActiveRecord::Base.transaction do
         PlayerStat.where(match_id: match_id).delete_all
         payload.each do |stat_params|
@@ -26,7 +28,6 @@ module PlayerStats
     attr_reader :match_id, :payload
 
     def build_attributes(stat_params)
-      # Convert to hash and symbolize keys
       attributes = stat_params.is_a?(Hash) ? stat_params.symbolize_keys : stat_params.to_h.symbolize_keys
       attributes.slice(:goals, :own_goals, :assists, :was_goalkeeper, :player_id, :team_id)
                 .merge(match_id: match_id)
@@ -51,6 +52,20 @@ module PlayerStats
         next if total_assists <= total_goals
 
         raise InvalidAssistsError, I18n.t('activerecord.errors.models.player_stat.attributes.assists.assists_require_goals')
+      end
+    end
+
+    def validate_goalkeeper_rules!
+      by_player = payload.group_by { |row| (row.is_a?(Hash) ? row : row.to_h).symbolize_keys[:player_id] }
+
+      by_player.each do |player_id, rows|
+        player_rows = rows.map { |r| (r.is_a?(Hash) ? r : r.to_h).symbolize_keys }
+        has_goalkeeper = player_rows.any? { |r| r[:was_goalkeeper] == true }
+        has_line_player = player_rows.any? { |r| r[:was_goalkeeper] == false }
+
+        if has_goalkeeper && has_line_player
+          raise InvalidGoalkeeperError, I18n.t('activerecord.errors.models.player_stat.attributes.was_goalkeeper.goalkeeper_not_line_player')
+        end
       end
     end
   end

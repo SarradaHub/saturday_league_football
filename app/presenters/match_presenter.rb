@@ -107,7 +107,6 @@ class MatchPresenter < ApplicationPresenter
   def team_players(team)
     return [] if team.blank?
 
-    # Check if players association is already loaded to avoid N+1
     if team.association(:players).loaded?
       team.players.map { |player| PlayerSerializer.new(player).as_json }
     else
@@ -115,7 +114,6 @@ class MatchPresenter < ApplicationPresenter
     end
   end
 
-  # Convert hash of player names to counts into array of Player objects
   def hash_to_player_array(team, hash)
     return [] if hash.blank? || !hash.is_a?(Hash)
 
@@ -134,7 +132,7 @@ class MatchPresenter < ApplicationPresenter
   def find_player_by_name(team, name)
     return nil if team.blank? || name.blank?
 
-    team.players.find { |p| p.name == name.to_s }
+    team.players.find { |p| p.display_name == name.to_s }
   end
 
   def team_1_goals_scorer_array

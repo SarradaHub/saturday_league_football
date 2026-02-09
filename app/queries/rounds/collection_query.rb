@@ -13,21 +13,14 @@ module Rounds
     def call
       scope = relation.order(round_date: :desc)
 
-      # Filter by user_id via championship if provided
       scope = scope.joins(:championship).where(championships: { user_id: user_id }) if user_id.present?
 
-      # Apply includes - add default includes for RoundPresenter when used in lists
-      # RoundPresenter accesses matches, players, and teams
       if includes.any?
         scope = apply_includes(scope, includes)
       else
-        # Minimal eager loading for list views (skip_nested will be true)
-        # Only load championship for basic round data
-        # Nested data (matches, players, teams) will only be loaded if explicitly requested via includes
         scope = scope.includes(:championship)
       end
 
-      # Apply pagination if specified
       if page && per_page
         offset = (page - 1) * per_page
         scope = scope.limit(per_page).offset(offset)

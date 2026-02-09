@@ -47,6 +47,9 @@ module Api
         else
           render json: @team.errors, status: :unprocessable_content
         end
+      rescue ActiveRecord::RecordNotDestroyed => e
+        message = e.record.respond_to?(:errors) && e.record.errors.any? ? e.record.errors.full_messages.join : e.message
+        render json: { errors: [message] }, status: :unprocessable_content
       end
 
       def destroy

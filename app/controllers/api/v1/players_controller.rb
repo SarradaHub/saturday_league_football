@@ -7,7 +7,6 @@ module Api
       def index
         includes_list = parse_includes
         pagination = paginate_params
-        # Get base relation for count
         base_query = Players::CollectionQuery.new(
           championship_id: params[:championship_id],
           round_id: params[:round_id],
@@ -17,7 +16,6 @@ module Api
           user_id: current_user.id
         )
         base_relation = base_query.call
-        # Get paginated collection
         collection = Players::CollectionQuery.new(
           championship_id: params[:championship_id],
           round_id: params[:round_id],
@@ -41,9 +39,14 @@ module Api
       end
 
       def add_to_round
-        player = Players::AddToRound.call(player: @player, round_id: params[:round_id])
-        # The service already reloads the player, but ensure associations are loaded
-        # Reload from database with associations to get fresh data including new round
+        goalkeeper_only_param = ActiveModel::Type::Boolean.new.cast(params[:goalkeeper_only])
+        goalkeeper_only_value = goalkeeper_only_param.nil? ? false : goalkeeper_only_param
+
+        player = Players::AddToRound.call(
+          player: @player,
+          round_id: params[:round_id],
+          goalkeeper_only: goalkeeper_only_value
+        )
         player = Player.includes({ player_rounds: :round }).find(player.id)
         render json: PlayerPresenter.new(player).as_json
       end
@@ -86,8 +89,9 @@ module Api
       end
 
       def player_params
-        params.require(:player).permit(:name, player_teams_attributes: %i[id team_id _destroy],
-                                              player_rounds_attributes: %i[id round_id _destroy])
+        params.require(:player).permit(:first_name, :last_name, :nickname,
+          player_teams_attributes: %i[id team_id _destroy],
+          player_rounds_attributes: %i[id round_id _destroy])
       end
 
       def find_team

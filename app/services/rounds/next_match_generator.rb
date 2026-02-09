@@ -1,10 +1,23 @@
 # frozen_string_literal: true
 
+# Generates the next match for a round following the automatic match sequence.
+# Does not use was_goalkeeper from previous matches: goalkeeper designation is per-match only.
+# Player order for completing the waiting team and queue uses only registration order in the
+# round (player_rounds.created_at), not was_goalkeeper.
 module Rounds
   class NextMatchGenerator < ApplicationService
+    # Same rule as RoundTeamGenerator: 1 slot reserved for (external) goalkeeper
+    RESERVED_SLOTS_FOR_GOALKEEPER = 1
+
     class NotEnoughTeamsError < StandardError; end
     class WinnerSelectionRequiredError < StandardError; end
     class InvalidWinnerError < StandardError; end
+
+    def self.redistribute_after_finalize(match)
+      round = match.round
+      instance = new(round: round, create_match: false)
+      instance.send(:redistribute_for_finalized_match!)
+    end
 
     def initialize(round:, winner_team_id: nil, create_match: false)
       @round = round
@@ -65,12 +78,9 @@ module Rounds
           end
 
           if full_next.size >= 2
-            # Add the teams from the draw to the queue
             queue = queue + [standing, incoming].compact.reject { |team| team.is_blocked? }
-            # Use the first two full teams from the queue as standing and incoming
             standing = full_next[0]
             incoming = full_next[1]
-            # Remove these teams from the queue
             queue = queue.reject { |team| team.id == standing.id || team.id == incoming.id }
           else
             queue = queue + [standing].compact.reject { |team| team.is_blocked? }
@@ -79,7 +89,9 @@ module Rounds
           end
         else
           winner = resolve_winner(match, standing, incoming)
-          loser = winner.id == standing.id ? incoming : standing
+          next if winner.blank?
+
+          loser = match.team_1_id == winner.id ? match.team_2 : match.team_1
           queue = queue + [loser] if loser.present? && !loser.is_blocked?
           standing = winner
           incoming = queue.shift
@@ -88,7 +100,6 @@ module Rounds
 
       raise NotEnoughTeamsError, 'Not enough teams to create a match' if standing.blank? || incoming.blank?
 
-      # Final filter to ensure no blocked teams in queue
       queue = queue.compact.reject { |team| team.is_blocked? }
 
       {
@@ -108,6 +119,13 @@ module Rounds
 
     def resolve_winner(match, standing, incoming)
       return match.winning_team if match.winning_team.present?
+      return nil if match.winning_team_id.blank?
+
+      if standing.blank? || incoming.blank?
+        return match.team_1 if match.winning_team_id == match.team_1_id
+        return match.team_2 if match.winning_team_id == match.team_2_id
+        raise InvalidWinnerError, 'Winning team is not part of the match'
+      end
 
       if match.winning_team_id == standing.id
         standing
@@ -130,7 +148,6 @@ module Rounds
         incoming = match.team_2
       end
 
-      # Ensure standing and incoming are not blocked
       standing = nil if standing.present? && standing.is_blocked?
       incoming = nil if incoming.present? && incoming.is_blocked?
 
@@ -143,7 +160,6 @@ module Rounds
       base_queue = current_queue.presence || teams_ordered
       cleaned = base_queue.compact.reject { |team| team.nil? || active_ids.include?(team.id) || team.is_blocked? }
 
-      # Ensure all teams are present in order (excluding blocked teams)
       existing_ids = cleaned.map(&:id)
       teams_ordered.compact.each do |team|
         next if team.nil? || active_ids.include?(team.id) || existing_ids.include?(team.id) || team.is_blocked?
@@ -154,12 +170,18 @@ module Rounds
       cleaned
     end
 
+    # Team is "full" when it has slots_per_team players (max - 1, reserving 1 for goalkeeper), same as RoundTeamGenerator
     def full_team?(team)
-      max = round.championship&.max_players_per_team.to_i
-      return true unless max.positive?
+      slots = slots_per_team
+      return true unless slots.positive?
 
       team_size = team.players_count || team.players.count
-      team_size >= max
+      team_size >= slots
+    end
+
+    def slots_per_team
+      max = round.championship&.max_players_per_team.to_i
+      [max - RESERVED_SLOTS_FOR_GOALKEEPER, 1].max
     end
 
     def suggestion_payload(state)
@@ -175,9 +197,7 @@ module Rounds
     end
 
     def winner_selection_payload(state)
-      # Build queue starting with next_opponent (next team to play) followed by the rest of the queue
       queue_teams = state[:queue]&.compact&.reject { |team| team.nil? || team.is_blocked? } || []
-      # Remove next_opponent from queue if it's already there to avoid duplication
       queue_teams = queue_teams.reject { |team| team.nil? || team.id == state[:next_opponent]&.id }
       full_queue = [state[:next_opponent]].compact + queue_teams
       full_queue = full_queue.reject { |team| team.nil? || team.is_blocked? }
@@ -203,9 +223,6 @@ module Rounds
 
       raise NotEnoughTeamsError, 'Not enough teams to create a match' if incoming.blank?
 
-      queue = state[:queue] || []
-      redistribute_losing_team_players!(loser, queue) if loser.present?
-
       match = Match.create!(
         round: round,
         name: match_name(winner, incoming),
@@ -213,7 +230,6 @@ module Rounds
         team_2: incoming
       )
 
-      # Recompute state after match creation to get updated queue
       new_state = compute_state
       updated_queue = build_queue_for_payload(new_state)
 
@@ -221,13 +237,10 @@ module Rounds
     end
 
     def create_match_from_state(state)
+      redistribute_for_finalized_match! if state[:last_match].present?
+
       standing = state[:standing]
       incoming = state[:incoming]
-      last_match = state[:last_match]
-      loser = loser_from_match(last_match, standing, incoming)
-
-      queue = state[:queue] || []
-      redistribute_losing_team_players!(loser, queue) if loser.present?
 
       match = Match.create!(
         round: round,
@@ -236,11 +249,20 @@ module Rounds
         team_2: incoming
       )
 
-      # Recompute state after match creation to get updated queue
       new_state = compute_state
       updated_queue = build_queue_for_payload(new_state)
 
       { match: match, queue: updated_queue }
+    end
+
+    def redistribute_for_finalized_match!
+      state = compute_state
+      last_match = state[:last_match]
+      return if last_match.blank?
+
+      loser = loser_from_match(last_match, state[:standing], state[:incoming])
+      queue = state[:queue] || []
+      redistribute_losing_team_players!(loser, queue, incoming: state[:incoming]) if loser.present?
     end
 
     def loser_from_match(match, standing, incoming)
@@ -252,11 +274,11 @@ module Rounds
     end
 
     def fill_team_from_loser!(target_team, losing_team)
-      max = round.championship&.max_players_per_team.to_i
-      return if losing_team.blank? || target_team.blank? || !max.positive?
+      slots = slots_per_team
+      return if losing_team.blank? || target_team.blank? || !slots.positive?
 
       current_size = target_team.players_count || target_team.players.count
-      missing_slots = [max - current_size, 0].max
+      missing_slots = [slots - current_size, 0].max
       return if missing_slots.zero?
 
       target_player_ids = target_team.players.pluck(:id)
@@ -272,18 +294,20 @@ module Rounds
       end
     end
 
-    def redistribute_losing_team_players!(losing_team, queue)
+    # Redistributes losing team players: fill the incoming team (waiting to play) if incomplete,
+    # then any other incomplete team in the queue, then create a new team with the rest.
+    # Order is strictly by inscription in the round; does not consider was_goalkeeper.
+    def redistribute_losing_team_players!(losing_team, queue, incoming: nil)
       return nil if losing_team.blank?
 
-      # Get players from losing team ordered by registration (player_rounds.created_at)
-      # We need to get players in the order they were registered in this round
+      losing_team.update!(is_blocked: true)
+
       losing_players = losing_team.player_teams
                                   .includes(:player)
                                   .order(:created_at)
                                   .map(&:player)
                                   .compact
 
-      # Reorder by player_rounds.created_at to ensure registration order
       losing_players = losing_players.sort_by do |player|
         player_round = player.player_rounds.find_by(round_id: round.id)
         player_round&.created_at || Time.current
@@ -291,40 +315,40 @@ module Rounds
 
       return nil if losing_players.empty?
 
-      max_players_per_team = round.championship&.max_players_per_team.to_i
-      return nil unless max_players_per_team.positive?
-
-      # Check if there's an incomplete team in the queue
-      incomplete_team = queue.find { |team| !full_team?(team) }
+      slots = slots_per_team
+      return nil unless slots.positive?
 
       remaining_players = losing_players.dup
 
-      if incomplete_team.present?
-        # Fill incomplete team with players from losing team
-        current_size = incomplete_team.players_count || incomplete_team.players.count
-        missing_slots = [max_players_per_team - current_size, 0].max
+      fill_team_with_losing_players!(incoming, remaining_players, slots) if incoming.present?
 
-        if missing_slots.positive?
-          target_player_ids = incomplete_team.players.pluck(:id)
-          players_to_move = remaining_players.select { |player| !target_player_ids.include?(player.id) }.first(missing_slots)
+      incomplete_team = queue.find { |team| team.id != losing_team.id && !full_team?(team) }
+      fill_team_with_losing_players!(incomplete_team, remaining_players, slots) if incomplete_team.present?
 
-          players_to_move.each do |player|
-            PlayerTeam.create!(player: player, team: incomplete_team)
-            remaining_players.delete(player)
-          end
-        end
-      end
-
-      # Create new team with remaining players (if any)
       new_team = nil
       if remaining_players.any?
         new_team = create_new_team_with_players(remaining_players)
       end
 
-      # Block losing team
-      losing_team.update!(is_blocked: true)
-
       new_team
+    end
+
+    # Adds players from remaining_players to the target team (in order) until it has target_slots
+    # (max - 1, reserving 1 for goalkeeper). Does not remove from losing team; keeps history.
+    def fill_team_with_losing_players!(team, remaining_players, target_slots)
+      return if team.blank? || remaining_players.empty?
+
+      current_size = team.players_count || team.players.count
+      missing_slots = [target_slots - current_size, 0].max
+      return if missing_slots.zero?
+
+      target_player_ids = team.players.pluck(:id)
+      players_to_move = remaining_players.select { |player| !target_player_ids.include?(player.id) }.first(missing_slots)
+
+      players_to_move.each do |player|
+        PlayerTeam.create!(player: player, team: team)
+        remaining_players.delete(player)
+      end
     end
 
     def create_new_team_with_players(players)
@@ -350,9 +374,7 @@ module Rounds
     end
 
     def build_queue_for_payload(state)
-      # Build queue starting with incoming (next team to play) followed by the rest of the queue
       queue_teams = state[:queue]&.compact&.reject { |team| team.nil? || team.is_blocked? } || []
-      # Remove incoming from queue if it's already there to avoid duplication
       queue_teams = queue_teams.reject { |team| team.nil? || team.id == state[:incoming]&.id }
       full_queue = [state[:incoming]].compact + queue_teams
       full_queue = full_queue.reject { |team| team.nil? || team.is_blocked? }

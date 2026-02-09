@@ -294,6 +294,124 @@ RSpec.describe Api::V1::MatchesController, type: :controller do
       end
     end
   end
+
+  describe '#substitute_player' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+    let(:player_to_remove) { FactoryBot.create(:player) }
+    let(:replacement_player) { FactoryBot.create(:player) }
+
+    before do
+      round.players << player_to_remove
+      round.players << replacement_player
+      team1.players << player_to_remove
+    end
+
+    context 'when substitution is successful' do
+      before do
+        perform_post(:substitute_player, params: {
+          id: match.id,
+          player_id: player_to_remove.id,
+          replacement_player_id: replacement_player.id,
+          team_id: team1.id
+        })
+      end
+
+      it 'returns ok' do
+        expect(response).to have_http_status(:ok)
+      end
+
+      it 'returns substitution details' do
+        expect(json_response['removed_player_id']).to eq(player_to_remove.id)
+        expect(json_response['removed_player_name']).to eq(player_to_remove.display_name)
+        expect(json_response['replacement_player_id']).to eq(replacement_player.id)
+        expect(json_response['replacement_player_name']).to eq(replacement_player.display_name)
+        expect(json_response['team_id']).to eq(team1.id)
+        expect(json_response['team_name']).to eq(team1.name)
+      end
+
+      it 'removes player from team' do
+        team1.reload
+        expect(team1.players).not_to include(player_to_remove)
+      end
+
+      it 'adds replacement player to team' do
+        team1.reload
+        expect(team1.players).to include(replacement_player)
+      end
+    end
+
+    context 'when player is not in team' do
+      before do
+        team1.players.delete(player_to_remove)
+        perform_post(:substitute_player, params: {
+          id: match.id,
+          player_id: player_to_remove.id,
+          replacement_player_id: replacement_player.id,
+          team_id: team1.id
+        })
+      end
+
+      it 'returns error response' do
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json_response['errors']).to be_present
+      end
+    end
+
+    context 'when replacement player is not in round' do
+      before do
+        round.players.delete(replacement_player)
+        perform_post(:substitute_player, params: {
+          id: match.id,
+          player_id: player_to_remove.id,
+          replacement_player_id: replacement_player.id,
+          team_id: team1.id
+        })
+      end
+
+      it 'returns error response' do
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json_response['errors']).to be_present
+      end
+    end
+
+    context 'when replacement player is already in match teams' do
+      before do
+        team2.players << replacement_player
+        perform_post(:substitute_player, params: {
+          id: match.id,
+          player_id: player_to_remove.id,
+          replacement_player_id: replacement_player.id,
+          team_id: team1.id
+        })
+      end
+
+      it 'returns error response' do
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json_response['errors']).to be_present
+      end
+    end
+
+    context 'when team is not part of match' do
+      let(:other_team) { FactoryBot.create(:team, round: round) }
+
+      before do
+        perform_post(:substitute_player, params: {
+          id: match.id,
+          player_id: player_to_remove.id,
+          replacement_player_id: replacement_player.id,
+          team_id: other_team.id
+        })
+      end
+
+      it 'returns error response' do
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(json_response['errors']).to be_present
+      end
+    end
+  end
 end
 
 # rubocop:enable RSpec/MultipleMemoizedHelpers

@@ -37,7 +37,7 @@ class MatchStatisticsPresenter < ApplicationPresenter
 
     team_stats(team)
       .select { |stat| stat.public_send(attribute).to_i.positive? }
-      .group_by { |stat| stat.player.name }
+      .group_by { |stat| stat.player.display_name }
       .transform_values { |stats| stats.sum { |stat| stat.public_send(attribute).to_i } }
   end
 
@@ -51,7 +51,7 @@ class MatchStatisticsPresenter < ApplicationPresenter
 
     team_stats(team)
       .select { |stat| stat.was_goalkeeper == true }
-      .map { |stat| stat.player.name }
+      .map { |stat| stat.player.display_name }
       .uniq
   end
 end

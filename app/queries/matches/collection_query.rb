@@ -13,18 +13,14 @@ module Matches
     def call
       scope = relation.order(created_at: :desc)
 
-      # Filter by user_id via championship if provided
       scope = scope.joins(round: :championship).where(championships: { user_id: user_id }) if user_id.present?
 
-      # Apply includes - add default includes for MatchPresenter when used in lists
       if includes.any?
         scope = apply_includes(scope, includes)
       else
-        # Use direct includes for default associations
         scope = scope.includes({ team_1: :players }, { team_2: :players }, :winning_team, :round)
       end
 
-      # Apply pagination if specified
       if page && per_page
         offset = (page - 1) * per_page
         scope = scope.limit(per_page).offset(offset)

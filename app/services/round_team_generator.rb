@@ -2,6 +2,7 @@
 
 class RoundTeamGenerator
   DEFAULT_TEAM_COUNT = 2
+  RESERVED_SLOTS_FOR_GOALKEEPER = 1
 
   class PlayerLimitError < StandardError; end
 
@@ -32,7 +33,11 @@ class RoundTeamGenerator
   attr_reader :round, :team_count
 
   def ordered_players
-    round.player_rounds.includes(:player).order(:created_at).map(&:player)
+    round.player_rounds
+        .where(blocked: false, goalkeeper_only: false)
+        .includes(:player)
+        .order(:created_at)
+        .map(&:player)
   end
 
   def ensure_minimum_teams(players_present)
@@ -52,7 +57,7 @@ class RoundTeamGenerator
 
   def clear_memberships
     team_ids = round.teams.select(:id)
-    PlayerTeam.where(team_id: team_ids).delete_all
+    PlayerTeam.with_deleted.where(team_id: team_ids).delete_all
     Team.where(id: team_ids).update_all(players_count: 0)
   end
 
@@ -64,14 +69,15 @@ class RoundTeamGenerator
 
     ensure_distribution_respects_limits(players, teams)
 
-    max_players_per_team = round&.championship&.max_players_per_team.to_i
+    championship = round&.championship
+    slots = championship.present? ? slots_for_auto_formation(championship) : 0
 
-    if max_players_per_team.positive?
-      required_teams = (players.size.to_f / max_players_per_team).ceil
+    if slots.positive?
+      required_teams = (players.size.to_f / slots).ceil
       teams_to_use = teams.first([required_teams, 1].max)
 
       players.each_with_index do |player, index|
-        team_index = [index / max_players_per_team, teams_to_use.length - 1].min
+        team_index = [index / slots, teams_to_use.length - 1].min
         PlayerTeam.create!(player:, team: teams_to_use[team_index])
       end
     else
@@ -86,10 +92,10 @@ class RoundTeamGenerator
     championship = round&.championship
     return unless championship.present?
 
-    max = championship.max_players_per_team
-    return unless max.to_i.positive?
+    slots = slots_for_auto_formation(championship)
+    return unless slots.positive?
 
-    required_teams = (player_count.to_f / max).ceil
+    required_teams = (player_count.to_f / slots).ceil
     return unless required_teams.positive?
 
     @team_count = [team_count, required_teams].max
@@ -103,11 +109,16 @@ class RoundTeamGenerator
     return if team_total.zero?
 
     player_total = players.size
-    max = championship.max_players_per_team
+    slots = slots_for_auto_formation(championship)
 
-    if max.to_i.positive? && player_total > max * team_total
-      raise PlayerLimitError, "Too many players (#{player_total}) for the maximum of #{max} per team"
+    if slots.positive? && player_total > slots * team_total
+      raise PlayerLimitError, "Too many players (#{player_total}) for the maximum of #{slots} per team"
     end
+  end
+
+  def slots_for_auto_formation(championship)
+    max = championship.max_players_per_team.to_i
+    [max - RESERVED_SLOTS_FOR_GOALKEEPER, 1].max
   end
 
   def unique_team_name(sequence, existing_names)

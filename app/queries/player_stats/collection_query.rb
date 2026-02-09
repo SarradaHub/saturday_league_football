@@ -13,20 +13,17 @@ module PlayerStats
     def call
       scope = relation
 
-      # Filter by user_id via championship if provided
       if user_id.present?
         scope = scope.joins(match: { round: :championship })
                       .where(championships: { user_id: user_id })
       end
 
-      # Apply includes only if specified
       if includes.any?
         scope = apply_includes(scope, includes)
       else
         scope = scope.includes(:player, :team, :match)
       end
 
-      # Apply pagination if specified
       if page && per_page
         offset = (page - 1) * per_page
         scope = scope.limit(per_page).offset(offset)

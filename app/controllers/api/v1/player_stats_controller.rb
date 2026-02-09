@@ -8,7 +8,6 @@ module Api
       def index
         includes_list = parse_includes
         pagination = paginate_params
-        # Get base relation for count
         base_query = PlayerStats::CollectionQuery.new(
           includes: includes_list,
           page: nil,
@@ -16,7 +15,6 @@ module Api
           user_id: current_user.id
         )
         base_relation = base_query.call
-        # Get paginated collection
         collection = PlayerStats::CollectionQuery.new(
           includes: includes_list,
           page: pagination[:page],
@@ -51,13 +49,10 @@ module Api
         @player_stat.destroy
         head :no_content
       end
-
-      # Get player stats by match ID
       def by_match
         includes_list = parse_includes
         pagination = paginate_params
         base_relation_scope = PlayerStat.where(match_id: params[:match_id])
-        # Get base relation for count
         base_query = PlayerStats::CollectionQuery.new(
           relation: base_relation_scope,
           includes: includes_list,
@@ -66,7 +61,6 @@ module Api
           user_id: current_user.id
         )
         base_relation = base_query.call
-        # Get paginated collection
         collection = PlayerStats::CollectionQuery.new(
           relation: base_relation_scope,
           includes: includes_list,
@@ -77,7 +71,6 @@ module Api
         render_collection(collection, serializer_class: PlayerStatSerializer, base_relation: base_relation)
       end
 
-      # Bulk create/update player stats for a match
       def bulk_update
         permitted_stats = params[:player_stats]&.map do |stat_params|
           stat_params.permit(:player_id, :team_id, :goals, :assists, :own_goals, :was_goalkeeper).to_h
@@ -89,8 +82,25 @@ module Api
         render json: serialize(stats)
       rescue PlayerStats::BulkUpsert::InvalidAssistsError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue PlayerStats::BulkUpsert::InvalidGoalkeeperError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
       rescue ActiveRecord::RecordInvalid => e
         render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      end
+
+      def add_goalkeeper
+        stat = PlayerStats::AddGoalkeeper.call(
+          match_id: params[:match_id],
+          team_id: params[:team_id],
+          player_id: params[:player_id]
+        )
+        render json: PlayerStatSerializer.new(stat).as_json
+      rescue PlayerStats::BulkUpsert::InvalidGoalkeeperError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue ActiveRecord::RecordInvalid => e
+        render json: { errors: e.record.errors.full_messages }, status: :unprocessable_content
+      rescue PlayerStats::AddGoalkeeper::MissingParamsError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
       end
 
       private

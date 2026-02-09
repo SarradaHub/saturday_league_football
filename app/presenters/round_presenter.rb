@@ -51,8 +51,18 @@ class RoundPresenter < ApplicationPresenter
 
   def serialized_players
     # Use PlayerSerializer to avoid circular reference (players -> rounds -> players)
-    # RoundPresenter already provides rounds, so we don't need rounds in each player
-    players.map { |player| PlayerSerializer.new(player).as_json }
+    # Order by inscription in round (player_rounds.created_at) per fluxo ponto 28
+    resource.player_rounds.includes(:player).order(:created_at).map do |pr|
+      PlayerSerializer.new(pr.player).as_json.merge(
+        player_round_id: pr.id,
+        blocked: pr.blocked,
+        goalkeeper_only: pr.goalkeeper_only
+      )
+    end
+  end
+
+  def players_ordered_by_inscription
+    resource.player_rounds.includes(:player).order(:created_at).map(&:player).uniq
   end
 
   def serialized_teams

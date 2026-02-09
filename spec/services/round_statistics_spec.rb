@@ -95,7 +95,7 @@ RSpec.describe RoundStatistics do
         result = call_result
         player1_stats = result[player1.id]
         expect(player1_stats[:player]).to include(
-          name: player1.name
+          name: player1.display_name
         )
       end
     end

@@ -36,11 +36,11 @@ RSpec.describe RoundTeamGenerator do
         expect { call_service }.to change(round.teams, :count).from(0).to(2)
       end
 
-      it 'assigns all players to the first team' do
+      it 'assigns players leaving one slot per team for goalkeeper' do
         call_service
         teams = round.reload.teams.order(:created_at).includes(:players)
-        expect(teams.first.players).to match_array(players)
-        expect(teams.second.players).to be_empty
+        expect(teams.first.players).to match_array(players.first(3))
+        expect(teams.second.players).to contain_exactly(players[3])
       end
     end
 
@@ -79,12 +79,12 @@ RSpec.describe RoundTeamGenerator do
         expect { call_service }.to change(round.teams, :count).from(0).to(3)
       end
 
-      it 'spreads players without exceeding the limit' do
+      it 'spreads players without exceeding the limit (one slot reserved for goalkeeper)' do
         call_service
         ordered_players = round.reload.teams.order(:created_at).map(&:players)
-        expect(ordered_players.first).to match_array(players.first(4))
-        expect(ordered_players.second).to match_array(players[4, 4])
-        expect(ordered_players.third).to contain_exactly(players[8])
+        expect(ordered_players.first).to match_array(players.first(3))
+        expect(ordered_players.second).to match_array(players[3, 3])
+        expect(ordered_players.third).to match_array(players[6, 3])
       end
     end
 
@@ -104,6 +104,20 @@ RSpec.describe RoundTeamGenerator do
         call_service
         player_counts = round.reload.teams.map { |team| team.players.count }
         expect(player_counts.max).to be <= championship.max_players_per_team
+      end
+    end
+
+    context 'auto-formation reserves one slot for goalkeeper' do
+      let(:players) { create_list(:player, 5) }
+
+      before { add_players(players) }
+
+      it 'fills each team with at most max_players_per_team - 1 so goalkeeper can be added later' do
+        call_service
+        player_counts = round.reload.teams.map { |team| team.players.count }
+        max_from_generator = championship.max_players_per_team - 1
+        expect(player_counts.max).to be <= max_from_generator
+        expect(player_counts.sum).to eq(5)
       end
     end
   end

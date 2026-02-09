@@ -7,7 +7,6 @@ module Api
       def index
         includes_list = parse_includes
         pagination = paginate_params
-        # Get base relation for count
         base_query = Rounds::CollectionQuery.new(
           includes: includes_list,
           page: nil,
@@ -15,7 +14,6 @@ module Api
           user_id: current_user.id
         )
         base_relation = base_query.call
-        # Get paginated collection
         collection = Rounds::CollectionQuery.new(
           includes: includes_list,
           page: pagination[:page],
@@ -75,17 +73,82 @@ module Api
           winner_team_id: params[:winner_team_id],
           create_match: true
         )
-        
-        # Result can be a Match (old format) or a hash with match and queue (new format)
+
         if result.is_a?(Hash) && result[:match]
           render json: {
             match: MatchPresenter.new(result[:match]).as_json,
             queue: result[:queue]
           }, status: :created
         else
-          # Fallback for old format (should not happen, but keeping for safety)
           render json: MatchPresenter.new(result).as_json, status: :created
         end
+      rescue StandardError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      end
+
+      def substitute_player
+        round = find_round_for_sequence
+        result = Substitutions::ReplacePlayer.call(
+          round: round,
+          player_id: params[:player_id],
+          match_id: params[:match_id]
+        )
+        render json: result, status: :ok
+      rescue Substitutions::ReplacePlayer::PlayerNotInRoundError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue Substitutions::ReplacePlayer::NoAvailablePlayerError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue StandardError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      end
+
+      def remove_player
+        round = find_round_for_sequence
+        player_round = round.player_rounds.find_by!(player_id: params[:player_id])
+        player_round.destroy
+        head :no_content
+      rescue ActiveRecord::RecordNotFound
+        render json: { errors: ['Jogador não encontrado nesta rodada'] }, status: :unprocessable_content
+      end
+
+      def toggle_player_block
+        round = find_round_for_sequence
+        player_round = round.player_rounds.find_by!(player_id: params[:player_id])
+        player_round.update!(blocked: !player_round.blocked)
+        render json: { player_round_id: player_round.id, blocked: player_round.blocked }, status: :ok
+      rescue ActiveRecord::RecordNotFound
+        render json: { errors: ['Jogador não encontrado nesta rodada'] }, status: :unprocessable_content
+      end
+
+      def rebalance_teams
+        round = find_round_for_sequence
+        players_before = round.players.count
+        teams_before = round.teams.count
+
+        RoundTeamGenerator.call(round)
+
+        round.reload
+        players_after = round.players.count
+        teams_after = round.teams.count
+
+        team_distribution = round.teams.order(:created_at).map do |team|
+          {
+            id: team.id,
+            name: team.name,
+            players_count: team.players_count || team.players.count
+          }
+        end
+
+        render json: {
+          message: 'Times rebalanceados com sucesso',
+          teams_before: teams_before,
+          teams_after: teams_after,
+          players_before: players_before,
+          players_after: players_after,
+          distribution: team_distribution
+        }, status: :ok
+      rescue RoundTeamGenerator::PlayerLimitError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
       rescue StandardError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
       end

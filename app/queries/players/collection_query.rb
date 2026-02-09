@@ -15,9 +15,7 @@ module Players
       scope = Player.all
       scope = scope.in_championship(championship_id) if championship_id.present?
 
-      # Filter by round_id and/or user_id via championship
       if round_id.present? || user_id.present?
-        # Always join through player_rounds -> round -> championship to support both filters
         scope = scope.joins(player_rounds: { round: :championship })
         
         conditions = {}
@@ -28,18 +26,14 @@ module Players
         scope = scope.distinct
       end
 
-      # Apply includes - add default includes for PlayerPresenter when used in lists
       if includes.any?
         scope = apply_includes(scope, includes)
       else
-        # Use direct includes for simple default associations
-        # Load rounds through player_rounds to ensure proper eager loading
         scope = scope.includes(:player_stats, { player_rounds: :round })
       end
 
-      scope = scope.order(:name)
+      scope = scope.order(Player.arel_table[:first_name], Player.arel_table[:last_name], Player.arel_table[:nickname])
 
-      # Apply pagination if specified
       if page && per_page
         offset = (page - 1) * per_page
         scope = scope.limit(per_page).offset(offset)

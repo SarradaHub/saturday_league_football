@@ -2,24 +2,23 @@
 
 module Players
   class AddToRound < ApplicationService
-    def initialize(player:, round_id:)
+    def initialize(player:, round_id:, goalkeeper_only: false)
       @player = player
       @round_id = round_id
+      @goalkeeper_only = goalkeeper_only
     end
 
     def call
       round = Round.find(round_id)
-      # Use find_or_create_by to ensure player_round is created
-      player.player_rounds.find_or_create_by(round: round) do |player_round|
-        # PlayerRound will be created if it doesn't exist
-      end
-      # Return reloaded player to ensure associations are fresh
+      pr = player.player_rounds.find_or_initialize_by(round: round)
+      pr.goalkeeper_only = goalkeeper_only || false
+      pr.save!
       player.reload
       player
     end
 
     private
 
-    attr_reader :player, :round_id
+    attr_reader :player, :round_id, :goalkeeper_only
   end
 end

@@ -20,7 +20,7 @@ class PlayerTeam < ApplicationRecord
     max = championship.max_players_per_team
     return unless max.positive?
 
-    current_size = team.players_count || 0
+    current_size = team.player_teams.count
     return if current_size < max
 
     errors.add(:team, "has already reached the maximum of #{max} players")
@@ -29,6 +29,7 @@ class PlayerTeam < ApplicationRecord
   def ensure_team_remains_above_minimum
     return if destroyed_by_association
     return unless team.present?
+    return if team.is_blocked? # allow removing players from blocked (e.g. losing) teams
 
     championship = team.round&.championship
     return unless championship.present?
@@ -39,7 +40,7 @@ class PlayerTeam < ApplicationRecord
     current_size = team.players_count || 0
     return unless current_size <= min
 
-    errors.add(:team, :greater_than_or_equal_to, count: min)
+    errors.add(:team, "deve ter no mínimo #{min} jogadores")
     throw(:abort)
   end
 end

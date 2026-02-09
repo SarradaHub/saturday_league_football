@@ -15,10 +15,10 @@ RSpec.describe Players::CollectionQuery do
     let(:round2) { FactoryBot.create(:round, championship: championship1) }
     let(:round3) { FactoryBot.create(:round, championship: championship2) }
 
-    let!(:player1) { FactoryBot.create(:player, name: 'Alice') }
-    let!(:player2) { FactoryBot.create(:player, name: 'Bob') }
-    let!(:player3) { FactoryBot.create(:player, name: 'Charlie') }
-    let!(:player4) { FactoryBot.create(:player, name: 'David') }
+    let!(:player1) { FactoryBot.create(:player, first_name: 'Alice', last_name: nil) }
+    let!(:player2) { FactoryBot.create(:player, first_name: 'Bob', last_name: nil) }
+    let!(:player3) { FactoryBot.create(:player, first_name: 'Charlie', last_name: nil) }
+    let!(:player4) { FactoryBot.create(:player, first_name: 'David', last_name: nil) }
 
     before do
       # player1 and player2 in championship1
@@ -31,13 +31,13 @@ RSpec.describe Players::CollectionQuery do
 
 
     context 'with default parameters' do
-      it 'returns all players ordered by name' do
+      it 'returns all players ordered by first_name' do
         result = query_result.to_a
-        player_names = result.map(&:name)
+        player_names = result.map(&:display_name)
         expect(player_names).to include('Alice', 'Bob', 'Charlie', 'David')
         # Verify ordering
         our_players = result.select { |p| [player1.id, player2.id, player3.id, player4.id].include?(p.id) }
-        expect(our_players.map(&:name)).to eq(['Alice', 'Bob', 'Charlie', 'David'])
+        expect(our_players.map(&:display_name)).to eq(['Alice', 'Bob', 'Charlie', 'David'])
       end
 
       it 'returns ActiveRecord::Relation' do
@@ -55,9 +55,9 @@ RSpec.describe Players::CollectionQuery do
         expect(player_ids).not_to include(player3.id, player4.id)
       end
 
-      it 'still orders by name' do
+      it 'still orders by first_name' do
         result = query_result.to_a
-        expect(result.map(&:name)).to eq(['Alice', 'Bob'])
+        expect(result.map(&:display_name)).to eq(['Alice', 'Bob'])
       end
     end
 
@@ -137,12 +137,12 @@ RSpec.describe Players::CollectionQuery do
           expect(result.length).to eq(2)
         end
 
-        it 'returns first page ordered by name' do
+        it 'returns first page ordered by first_name' do
           result = query_result.to_a
           expect(result.length).to eq(2)
           # Verify our test players might be in the first page (depending on other players in DB)
-          result_names = result.map(&:name)
-          # Just verify we got 2 results and they're ordered by name
+          result_names = result.map(&:display_name)
+          # Just verify we got 2 results and they're ordered by display_name
           expect(result_names.length).to eq(2)
           expect(result_names).to eq(result_names.sort)
         end
@@ -155,8 +155,8 @@ RSpec.describe Players::CollectionQuery do
           result = query_result.to_a
           # Second page should have 2 items (or fewer if total is less than 4)
           expect(result.length).to be <= 2
-          # Verify results are ordered by name
-          result_names = result.map(&:name)
+          # Verify results are ordered by display_name
+          result_names = result.map(&:display_name)
           expect(result_names).to eq(result_names.sort)
         end
       end
@@ -210,7 +210,7 @@ RSpec.describe Players::CollectionQuery do
         team.players << player1
         result = query_result.to_a
         expect(result.length).to eq(1)
-        expect(result.first.name).to eq('Alice')
+        expect(result.first.display_name).to eq('Alice')
         expect(result.first.association(:teams).loaded?).to be true
       end
     end

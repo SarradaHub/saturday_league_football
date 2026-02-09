@@ -3,12 +3,11 @@
 module Api
   module V1
     class MatchesController < Api::V1::ApplicationController
-      before_action :set_match, only: %i[update destroy finalize]
+      before_action :set_match, only: %i[update destroy finalize substitute_player]
       def index
         includes_list = parse_includes
         pagination = paginate_params
         base_relation_scope = params[:round_id] ? Match.where(round_id: params[:round_id]) : Match.all
-        # Get base relation for count
         base_query = Matches::CollectionQuery.new(
           relation: base_relation_scope,
           includes: includes_list,
@@ -17,7 +16,6 @@ module Api
           user_id: current_user.id
         )
         base_relation = base_query.call
-        # Get paginated collection
         collection = Matches::CollectionQuery.new(
           relation: base_relation_scope,
           includes: includes_list,
@@ -57,6 +55,26 @@ module Api
       def finalize
         match = Matches::Finalize.call(match: @match)
         render json: MatchPresenter.new(match).as_json
+      rescue StandardError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      end
+
+      def substitute_player
+        result = Matches::SubstitutePlayer.call(
+          match: @match,
+          player_id: params[:player_id],
+          replacement_player_id: params[:replacement_player_id],
+          team_id: params[:team_id]
+        )
+        render json: result, status: :ok
+      rescue Matches::SubstitutePlayer::PlayerNotInTeamError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue Matches::SubstitutePlayer::ReplacementNotInRoundError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue Matches::SubstitutePlayer::ReplacementInMatchError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
+      rescue Matches::SubstitutePlayer::InvalidTeamError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
       rescue StandardError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
       end
