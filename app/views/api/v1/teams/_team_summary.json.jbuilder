@@ -3,6 +3,7 @@
 json.id team.id
 json.name team.name
 json.round_id team.round_id
+json.is_blocked team.is_blocked
 team_players = team.ordered_players
 json.player_count team_players.size
 json.created_at team.created_at

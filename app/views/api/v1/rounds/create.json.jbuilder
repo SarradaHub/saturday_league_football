@@ -6,6 +6,6 @@ if @round.persisted?
     json.partial! 'api/v1/rounds/round', resource: @round
   end
 else
-  json.status :unprocessable_entity
+  json.status :unprocessable_content
   json.errors @round.errors.full_messages
 end

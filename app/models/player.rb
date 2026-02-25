@@ -1,20 +1,47 @@
 # frozen_string_literal: true
 
 class Player < ApplicationRecord
-  has_many :player_stats, dependent: :destroy
+  include SoftDeletable
+
+  has_many :player_stats, dependent: :destroy, counter_cache: true
   has_many :player_teams, dependent: :destroy
   accepts_nested_attributes_for :player_teams, allow_destroy: true
   has_many :teams, through: :player_teams
-  has_many :player_rounds
+  has_many :player_rounds, dependent: :destroy
   accepts_nested_attributes_for :player_rounds, allow_destroy: true
   has_many :rounds, through: :player_rounds
   has_many :championships, through: :rounds
 
-  validates_presence_of :name
+  validate :at_least_one_name_part_present
+  before_validation :strip_name_attributes
+  before_destroy :cleanup_round_and_team_links
 
   scope :in_championship, lambda { |championship_id|
     joins(player_rounds: :round)
       .where(rounds: { championship_id: championship_id })
       .distinct
   }
+
+  def display_name
+    base = [first_name, last_name].compact.map { |s| s.to_s.strip }.reject(&:blank?)
+    nickname.to_s.strip.presence || base.join(' ').strip.presence || '—'
+  end
+
+  private
+
+  def strip_name_attributes
+    self.first_name = first_name.to_s.strip.presence
+    self.last_name = last_name.to_s.strip.presence
+    self.nickname = nickname.to_s.strip.presence
+  end
+
+  def at_least_one_name_part_present
+    return if first_name.present? || last_name.present? || nickname.present?
+    errors.add(:base, I18n.t('activerecord.errors.models.player.name_required'))
+  end
+
+  def cleanup_round_and_team_links
+    player_rounds.destroy_all
+    player_teams.destroy_all
+  end
 end

@@ -5,19 +5,60 @@ module Api
     class ChampionshipsController < Api::V1::ApplicationController
       before_action :set_championship, only: %i[update destroy]
       def index
-        @championships = Championships::CollectionQuery.new.call
+        includes_list = parse_includes
+        pagination = paginate_params
+        base_query = Championships::CollectionQuery.new(
+          includes: includes_list,
+          page: nil,
+          per_page: nil,
+          user_id: current_user.id
+        )
+        base_relation = base_query.call
+        collection = Championships::CollectionQuery.new(
+          includes: includes_list,
+          page: pagination[:page],
+          per_page: pagination[:per_page],
+          user_id: current_user.id
+        ).call
+        render_collection(collection, presenter_class: ChampionshipPresenter, base_relation: base_relation)
+      end
+
+      def statistics
+        @championship = Championships::FindQuery.new(id: params[:id], user_id: current_user.id).call
+        stats = Championships::ChampionshipStatistics.call(championship_id: @championship.id)
+        render json: stats
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Championship not found' }, status: :not_found
+      end
+
+      def summary
+        @championship = Championships::FindQuery.new(id: params[:id], user_id: current_user.id).call
+        render json: ChampionshipSummaryPresenter.new(@championship).as_json
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Championship not found' }, status: :not_found
       end
 
       def show
-        @championship = Championships::FindQuery.new(id: params[:id]).call
+        includes_list = parse_includes
+        @championship = Championships::FindQuery.new(id: params[:id], includes: includes_list, user_id: current_user.id).call
+        presenter_options = {}
+        presenter_options[:include_rounds] = true if includes_list.include?('rounds')
+        presenter_options[:include_players] = true if includes_list.include?('players')
+        championship_json = ChampionshipPresenter.new(@championship).as_json(presenter_options)
+        allowed_fields = parse_fields
+        championship_json = filter_fields(championship_json, allowed_fields) if allowed_fields.present?
+        render json: championship_json
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Championship not found' }, status: :not_found
       end
 
       def create
         @championship = Championship.new(championship_params)
+        @championship.user_id = current_user.id
         if @championship.save
           render json: ChampionshipPresenter.new(@championship).as_json, status: :created
         else
-          render json: @championship.errors, status: :unprocessable_entity
+          render json: @championship.errors, status: :unprocessable_content
         end
       end
 
@@ -25,19 +66,47 @@ module Api
         if @championship.update(championship_params)
           render json: ChampionshipPresenter.new(@championship).as_json
         else
-          render json: @championship.errors, status: :unprocessable_entity
+          render json: @championship.errors, status: :unprocessable_content
         end
       end
 
       def destroy
-        @championship.destroy
+        begin
+          @championship.destroy
+        rescue NoMethodError, ActiveRecord::InvalidForeignKey => e
+          if (e.is_a?(NoMethodError) && e.message.include?("`-@' for nil")) || e.is_a?(ActiveRecord::InvalidForeignKey)
+            # Delete in correct order to respect foreign key constraints
+            ActiveRecord::Base.transaction do
+              @championship.rounds.includes(:matches, :player_rounds, :teams).find_each do |round|
+                round.matches.includes(:player_stats).find_each do |match|
+                  match.player_stats.delete_all
+                end
+                round.matches.delete_all
+                round.player_rounds.delete_all
+                round.teams.includes(:player_teams, :player_stats).find_each do |team|
+                  team.player_teams.delete_all
+                  team.player_stats.delete_all
+                end
+                round.teams.delete_all
+                round.delete
+              end
+              @championship.delete
+            end
+          else
+            raise
+          end
+        end
         head :no_content
       end
 
       private
 
+      def cacheable_resource?
+        request.get? && %w[index summary statistics].include?(action_name)
+      end
+
       def set_championship
-        @championship = Championship.find(params[:id])
+        @championship = Championship.where(user_id: current_user.id).find(params[:id])
       end
 
       def championship_params

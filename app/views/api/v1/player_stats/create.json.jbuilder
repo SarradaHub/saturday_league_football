@@ -6,6 +6,6 @@ if @player_stat.persisted?
     json.partial! 'api/v1/player_stats/stat', resource: @player_stat
   end
 else
-  json.status :unprocessable_entity
+  json.status :unprocessable_content
   json.errors @player_stat.errors.full_messages
 end

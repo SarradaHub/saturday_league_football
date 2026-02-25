@@ -13,6 +13,7 @@ gem 'propshaft'
 gem 'puma', '>= 5.0'
 gem 'rack-cors'
 gem 'rails', '~> 8.1.1'
+gem 'devise'
 gem 'solid_cable'
 gem 'solid_cache'
 gem 'solid_queue'
@@ -51,17 +52,19 @@ group :development, :test do
   gem 'rspec-mocks'
   gem 'rspec-rails', '~> 8.0.2'
   gem 'simplecov'
+  gem 'bullet'
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem 'web-console'
-  gem 'bullet'
 end
 
 group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem 'capybara'
+  gem 'database_cleaner-active_record'
+  gem 'parallel_tests'
   gem 'selenium-webdriver'
   gem 'shoulda-matchers', '~> 7.0'
 end

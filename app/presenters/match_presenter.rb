@@ -12,6 +12,16 @@ class MatchPresenter < ApplicationPresenter
       draw: draw,
       team_1_players: team_players(resource.team_1),
       team_2_players: team_players(resource.team_2),
+      team_1_goals: team_1_goals,
+      team_2_goals: team_2_goals,
+      team_1_goals_scorer: team_1_goals_scorer_array,
+      team_1_assists: team_1_assists_array,
+      team_1_own_goals_scorer: team_1_own_goals_scorer_array,
+      team_1_goalkeepers: team_1_goalkeepers_array,
+      team_2_goals_scorer: team_2_goals_scorer_array,
+      team_2_assists: team_2_assists_array,
+      team_2_own_goals_scorer: team_2_own_goals_scorer_array,
+      team_2_goalkeepers: team_2_goalkeepers_array,
       statistics: statistics_payload,
       created_at: created_at,
       updated_at: updated_at
@@ -72,6 +82,14 @@ class MatchPresenter < ApplicationPresenter
     statistics.breakdown_for(resource.team_2, resource.team_1)[:own_goals]
   end
 
+  def team_1_goalkeepers
+    statistics.breakdown_for(resource.team_1, resource.team_2)[:goalkeepers]
+  end
+
+  def team_2_goalkeepers
+    statistics.breakdown_for(resource.team_2, resource.team_1)[:goalkeepers]
+  end
+
   private
 
   def statistics
@@ -89,6 +107,53 @@ class MatchPresenter < ApplicationPresenter
   def team_players(team)
     return [] if team.blank?
 
-    team.players.map { |player| PlayerSerializer.new(player).as_json }
+    team.player_teams.includes(:player).order(created_at: :asc).each_with_index.map do |pt, idx|
+      PlayerSerializer.new(pt.player).as_json.merge(inscription_order: idx + 1)
+    end
+  end
+
+  def team_1_goals_scorer_array
+    stats_to_player_array(statistics.goal_scorers_with_players(resource.team_1))
+  end
+
+  def team_1_assists_array
+    stats_to_player_array(statistics.assists_with_players(resource.team_1))
+  end
+
+  def team_1_own_goals_scorer_array
+    # Own goals from team_2 count for team_1
+    stats_to_player_array(statistics.own_goals_scorers_with_players(resource.team_2))
+  end
+
+  def team_2_goals_scorer_array
+    stats_to_player_array(statistics.goal_scorers_with_players(resource.team_2))
+  end
+
+  def team_2_assists_array
+    stats_to_player_array(statistics.assists_with_players(resource.team_2))
+  end
+
+  def team_2_own_goals_scorer_array
+    # Own goals from team_1 count for team_2
+    stats_to_player_array(statistics.own_goals_scorers_with_players(resource.team_1))
+  end
+
+  def team_1_goalkeepers_array
+    statistics.goalkeepers_with_players(resource.team_1).map { |player| PlayerSerializer.new(player).as_json }
+  end
+
+  def team_2_goalkeepers_array
+    statistics.goalkeepers_with_players(resource.team_2).map { |player| PlayerSerializer.new(player).as_json }
+  end
+
+  # Build array of serialized players from stats: [[player, count], ...] -> count copies of each player.
+  def stats_to_player_array(player_count_pairs)
+    return [] if player_count_pairs.blank?
+
+    result = []
+    player_count_pairs.each do |player, count|
+      count.to_i.times { result << PlayerSerializer.new(player).as_json }
+    end
+    result
   end
 end

@@ -13,8 +13,46 @@ class MatchStatisticsPresenter < ApplicationPresenter
       goals: goals_for(team, opponent),
       goal_scorers: grouped_totals(team, :goals),
       assists: grouped_totals(team, :assists),
-      own_goals: grouped_totals(team, :own_goals)
+      own_goals: grouped_totals(team, :own_goals),
+      goalkeepers: goalkeepers_for(team)
     }
+  end
+
+  # Player-based methods for match snapshot: resolve from stats so substituted players still appear.
+  def goal_scorers_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.goals.to_i.positive? }
+      .group_by { |stat| stat.player_id }
+      .map { |_player_id, stats| [stats.first.player, stats.sum { |s| s.goals.to_i }] }
+  end
+
+  def assists_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.assists.to_i.positive? }
+      .group_by { |stat| stat.player_id }
+      .map { |_player_id, stats| [stats.first.player, stats.sum { |s| s.assists.to_i }] }
+  end
+
+  def own_goals_scorers_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.own_goals.to_i.positive? }
+      .group_by { |stat| stat.player_id }
+      .map { |_player_id, stats| [stats.first.player, stats.sum { |s| s.own_goals.to_i }] }
+  end
+
+  def goalkeepers_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.was_goalkeeper == true }
+      .map { |stat| stat.player }
+      .uniq
   end
 
   private
@@ -36,12 +74,21 @@ class MatchStatisticsPresenter < ApplicationPresenter
 
     team_stats(team)
       .select { |stat| stat.public_send(attribute).to_i.positive? }
-      .group_by { |stat| stat.player.name }
+      .group_by { |stat| stat.player.display_name }
       .transform_values { |stats| stats.sum { |stat| stat.public_send(attribute).to_i } }
   end
 
   def team_stats(team)
     @team_stats ||= {}
     @team_stats[team.id] ||= Matches::PlayerStatsQuery.call(match: resource, team: team)
+  end
+
+  def goalkeepers_for(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.was_goalkeeper == true }
+      .map { |stat| stat.player.display_name }
+      .uniq
   end
 end

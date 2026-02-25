@@ -2,18 +2,67 @@
 
 module Rounds
   class CollectionQuery < ApplicationQuery
-    def initialize(relation: Round.all)
+    def initialize(relation: Round.all, includes: [], page: nil, per_page: nil, user_id: nil)
       @relation = relation
+      @includes = includes
+      @page = page
+      @per_page = per_page
+      @user_id = user_id
     end
 
     def call
-      relation
-        .includes(:matches, :players, :teams)
-        .order(round_date: :desc)
+      scope = relation.select(
+        :id,
+        :name,
+        :round_date,
+        :championship_id,
+        :matches_count,
+        :players_count,
+        :created_at,
+        :updated_at
+      ).order(round_date: :desc)
+
+      scope = scope.joins(:championship).where(championships: { user_id: user_id }) if user_id.present?
+
+      if includes.any?
+        scope = apply_includes(scope, includes)
+      else
+        scope = scope.includes(:championship)
+      end
+
+      if page && per_page
+        offset = (page - 1) * per_page
+        scope = scope.limit(per_page).offset(offset)
+      end
+
+      scope
     end
 
     private
 
-    attr_reader :relation
+    attr_reader :relation, :includes, :page, :per_page, :user_id
+
+    def apply_includes(scope, includes_list)
+      includes_hash = {}
+      includes_list.each do |include_str|
+        parts = include_str.split('.').map(&:to_sym)
+        current = includes_hash
+
+        parts.each_with_index do |part, index|
+          if index == parts.length - 1
+            current[part] = {}
+          else
+            current[part] ||= {}
+            current = current[part]
+          end
+        end
+      end
+
+      if includes_hash.any?
+        scope.includes(includes_hash)
+      else
+        scope.includes(includes_list.map(&:to_sym))
+      end
+    end
   end
 end

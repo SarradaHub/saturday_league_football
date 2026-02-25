@@ -79,6 +79,7 @@ GEM
       public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
     base64 (0.3.0)
+    bcrypt (3.1.21)
     bcrypt_pbkdf (1.1.1)
     bcrypt_pbkdf (1.1.1-arm64-darwin)
     bcrypt_pbkdf (1.1.1-x86_64-darwin)
@@ -106,11 +107,21 @@ GEM
     concurrent-ruby (1.3.5)
     connection_pool (2.5.5)
     crass (1.0.6)
+    database_cleaner-active_record (2.2.2)
+      activerecord (>= 5.a)
+      database_cleaner-core (~> 2.0)
+    database_cleaner-core (2.0.1)
     date (3.5.0)
     debug (1.11.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
     deep_merge (1.2.2)
+    devise (5.0.0)
+      bcrypt (~> 3.0)
+      orm_adapter (~> 0.1)
+      railties (>= 7.0)
+      responders
+      warden (~> 1.2.3)
     diff-lcs (1.6.2)
     diplomat (2.6.5)
       deep_merge (~> 1.2)
@@ -220,8 +231,11 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.10-x86_64-linux-musl)
       racc (~> 1.4)
+    orm_adapter (0.5.0)
     ostruct (0.6.3)
     parallel (1.27.0)
+    parallel_tests (5.5.0)
+      parallel
     parser (3.3.10.0)
       ast (~> 2.4.1)
       racc
@@ -302,6 +316,9 @@ GEM
     regexp_parser (2.11.3)
     reline (0.6.3)
       io-console (~> 0.5)
+    responders (3.2.0)
+      actionpack (>= 7.0)
+      railties (>= 7.0)
     rexml (3.4.4)
     rspec (3.13.2)
       rspec-core (~> 3.13.0)
@@ -427,6 +444,8 @@ GEM
     uniform_notifier (1.18.0)
     uri (1.1.1)
     useragent (0.16.11)
+    warden (1.2.9)
+      rack (>= 2.0.9)
     web-console (4.2.1)
       actionview (>= 6.0.0)
       activemodel (>= 6.0.0)
@@ -459,7 +478,9 @@ DEPENDENCIES
   byebug
   capybara
   circuitbox
+  database_cleaner-active_record
   debug
+  devise
   diplomat
   dotenv-rails
   factory_bot_rails
@@ -469,6 +490,7 @@ DEPENDENCIES
   foreman
   jbuilder
   kamal
+  parallel_tests
   pg (~> 1.6)
   propshaft
   puma (>= 5.0)
@@ -501,4 +523,4 @@ RUBY VERSION
    ruby 3.3.6p108
 
 BUNDLED WITH
-   2.5.22
+   2.4.0

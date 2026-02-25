@@ -6,6 +6,6 @@ if @match.persisted?
     json.partial! 'api/v1/matches/match', resource: @match
   end
 else
-  json.status :unprocessable_entity
+  json.status :unprocessable_content
   json.errors @match.errors.full_messages
 end

@@ -1,11 +1,11 @@
 require 'circuitbox'
+require 'circuitbox/faraday_middleware'
 require 'faraday'
 require 'faraday/retry'
 
 module CircuitBreakerService
   class << self
     def create_client(service_name, base_url = nil)
-      # Get service URL from Consul if not provided
       url = base_url || ConsulService.discover_service(service_name) || base_url
 
       return nil unless url
@@ -20,6 +20,7 @@ module CircuitBreakerService
       })
 
       Faraday.new(url: url) do |conn|
+        conn.use Circuitbox::FaradayMiddleware, circuit: circuit
         conn.request :retry, {
           max: 2,
           interval: 0.05,
@@ -28,8 +29,6 @@ module CircuitBreakerService
           retry_statuses: [429, 500, 502, 503, 504]
         }
         conn.adapter Faraday.default_adapter
-      end.tap do |client|
-        client.builder.insert_before(Faraday::Adapter, Circuitbox::FaradayMiddleware, circuit: circuit)
       end
     end
 
@@ -45,7 +44,8 @@ module CircuitBreakerService
         { success: false, error: 'Service temporarily unavailable', circuit_open: true }
       rescue => e
         Rails.logger.error "Error calling #{service_name}: #{e.message}"
-        { success: false, error: e.message }
+        circuit_open = e.class.name.include?('OpenCircuit') || e.is_a?(Circuitbox::OpenCircuitError)
+        { success: false, error: e.message, **(circuit_open ? { circuit_open: true } : {}) }
       end
     end
   end

@@ -48,7 +48,6 @@ module ConsulService
       services = Diplomat::Service.get(service_name, :all)
       return nil if services.empty?
 
-      # Return first healthy service
       service = services.find { |s| s[:Status] == 'passing' } || services.first
       "http://#{service[:Address]}:#{service[:Port]}"
     rescue => e

@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 class PlayerTeam < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :player
-  belongs_to :team
+  belongs_to :team, counter_cache: :players_count
 
   validate :team_has_capacity, on: :create
   before_destroy :ensure_team_remains_above_minimum
@@ -25,7 +27,9 @@ class PlayerTeam < ApplicationRecord
   end
 
   def ensure_team_remains_above_minimum
+    return if destroyed_by_association
     return unless team.present?
+    return if team.is_blocked? # allow removing players from blocked (e.g. losing) teams
 
     championship = team.round&.championship
     return unless championship.present?
@@ -33,10 +37,10 @@ class PlayerTeam < ApplicationRecord
     min = championship.min_players_per_team
     return unless min.positive?
 
-    current_size = team.player_teams.count
+    current_size = team.players_count || 0
     return unless current_size <= min
 
-    errors.add(:team, :greater_than_or_equal_to, count: min)
+    errors.add(:team, "deve ter no mínimo #{min} jogadores")
     throw(:abort)
   end
 end

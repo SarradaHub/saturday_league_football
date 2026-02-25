@@ -5,13 +5,13 @@ services:
       dockerfile: Dockerfile
     command: >
       /bin/bash -lc
-      "bundle exec rails db:create db:migrate db:seed &&
+      "bundle exec rails db:create &&
        bundle exec rails server -b 0.0.0.0"
     volumes:
       - .:/app
       - bundle_cache:/usr/local/bundle
     ports:
-      - "3000:3000"
+      - "3004:3004"
     depends_on:
       - db
       - redis
@@ -24,6 +24,7 @@ services:
       REDIS_URL: "redis://redis:6379/1"
       RAILS_ENV: development
       NODE_ENV: development
+      PORT: 3004
     stdin_open: true
     tty: true
 
