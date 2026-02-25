@@ -8,7 +8,6 @@ module Api
         includes_list = parse_includes
         pagination = paginate_params
         base_relation_scope = params[:round_id] ? Team.where(round_id: params[:round_id]) : Team.all
-        # Get base relation for count
         base_query = Teams::CollectionQuery.new(
           relation: base_relation_scope,
           includes: includes_list,
@@ -17,7 +16,6 @@ module Api
           user_id: current_user.id
         )
         base_relation = base_query.call
-        # Get paginated collection
         collection = Teams::CollectionQuery.new(
           relation: base_relation_scope,
           includes: includes_list,

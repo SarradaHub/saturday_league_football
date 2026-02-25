@@ -1,12 +1,8 @@
- # frozen_string_literal: true
+# frozen_string_literal: true
 
- module LeagueEngine
+module LeagueEngine
   module Rules
-    # Regra de domínio responsável por garantir que um jogador não possa
-    # ser goleiro e jogador de linha na mesma partida.
-    #
-    # É pensada para ser reutilizada tanto em validações em lote
-    # (`PlayerStats::BulkUpsert`) quanto em operações pontuais.
+    # Garante que um jogador não seja goleiro e jogador de linha na mesma partida.
     class GoalkeeperRule
       def self.valid_configuration?(rows)
         new(rows).valid_configuration?
@@ -53,4 +49,4 @@
       end
     end
   end
- end
+end

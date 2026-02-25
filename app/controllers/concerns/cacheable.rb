@@ -11,19 +11,23 @@ module Cacheable
   private
 
   def cacheable_request?
-    request.get? && cacheable_resource?
+    read_request? && cacheable_resource?
   end
 
   def cacheable_resource?
     false
   end
 
+  def read_request?
+    request.get? || request.head?
+  end
+
   def set_cache_headers
-    expires_in 5.minutes, public: false if request.get?
+    expires_in 5.minutes, public: false if read_request?
   end
 
   def set_etag_header
-    return unless request.get?
+    return unless read_request?
 
     etag = Digest::MD5.hexdigest(response.body.to_s)
     response.headers['ETag'] = %("#{etag}")

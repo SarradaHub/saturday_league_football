@@ -6,7 +6,6 @@ require 'faraday/retry'
 module CircuitBreakerService
   class << self
     def create_client(service_name, base_url = nil)
-      # Get service URL from Consul if not provided
       url = base_url || ConsulService.discover_service(service_name) || base_url
 
       return nil unless url

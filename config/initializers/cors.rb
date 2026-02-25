@@ -4,8 +4,10 @@
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
     origins [
+      'http://127.0.0.1:3002', # Saturday League Football frontend (dev)
       'http://127.0.0.1:5173',
       'http://127.0.0.1:5174',
+      'http://localhost:3002', # Saturday League Football frontend (dev)
       'http://localhost:5173', # Vite default port
       'http://localhost:5174', # Vite alternate port
       'http://localhost:8080', # API Gateway

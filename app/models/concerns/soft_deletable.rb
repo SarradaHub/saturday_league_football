@@ -4,26 +4,20 @@ module SoftDeletable
   extend ActiveSupport::Concern
 
   included do
-    # Default scope to exclude soft-deleted records
     default_scope { where(is_deleted: false) }
 
-    # Scope to get only deleted records
     scope :only_deleted, -> { unscope(where: :is_deleted).where(is_deleted: true) }
 
-    # Scope to get all records including deleted ones
     scope :with_deleted, -> { unscope(where: :is_deleted) }
 
-    # Callbacks for soft delete
     define_callbacks :soft_delete
     define_callbacks :restore
   end
 
-  # Check if record is soft deleted
   def deleted?
     is_deleted?
   end
 
-  # Soft delete the record
   def soft_delete
     return false if deleted?
 
@@ -33,7 +27,6 @@ module SoftDeletable
     true
   end
 
-  # Restore a soft-deleted record
   def restore
     return false unless deleted?
 
@@ -43,7 +36,6 @@ module SoftDeletable
     true
   end
 
-  # Override destroy to perform soft delete by default
   def destroy
     return false if deleted?
 
@@ -55,10 +47,8 @@ module SoftDeletable
     end
   end
 
-  # Hard delete - permanently remove from database with cascade
   def hard_delete
     transaction do
-      # Delete dependent associations recursively
       delete_dependent_associations
 
       # Run callbacks before final deletion
@@ -77,7 +67,6 @@ module SoftDeletable
 
   private
 
-  # Delete all dependent associations configured with dependent: :destroy
   def delete_dependent_associations
     self.class.reflect_on_all_associations(:has_many).each do |association|
       next unless association.options[:dependent] == :destroy
@@ -121,14 +110,11 @@ module SoftDeletable
     end
   end
 
-  # Check if the model has important callbacks that should be executed
   def has_important_callbacks?(klass)
-    # Check for before_destroy callbacks that might have validations or cleanup
     callbacks = klass._destroy_callbacks.select { |cb| cb.kind == :before }
     callbacks.any? { |cb| cb.filter.is_a?(Symbol) || cb.filter.is_a?(Proc) }
   end
 
-  # Class method to restore by ID
   def self.restore(id)
     record = unscoped.find_by(id: id)
     return false unless record&.deleted?
