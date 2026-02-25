@@ -20,7 +20,7 @@ RSpec.describe Rounds::NextMatchGenerator do
   end
 
   describe '.call' do
-    # rubocop:disable RSpec/ExampleLength -- integration examples with setup + assertions
+    # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations -- integration examples with setup + assertions
     it 'suggests the first two teams for the first match' do
       team_1 = create_team(name: 'Time 1', created_at: 1.hour.ago)
       team_2 = create_team(name: 'Time 2', created_at: 30.minutes.ago)
@@ -116,6 +116,6 @@ RSpec.describe Rounds::NextMatchGenerator do
       # O próximo time deve ser um dos times da Partida 1 (team_1 ou team_2)
       expect([team_1.id, team_2.id]).to include(result[:suggested_match][:team_2][:id])
     end
-    # rubocop:enable RSpec/ExampleLength
+    # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
   end
 end

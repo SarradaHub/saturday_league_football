@@ -260,6 +260,7 @@ RSpec.describe MatchPresenter do
   end
 
   context 'when player was substituted (no longer on team)' do
+    # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations
     it 'still shows that player in goals_scorer and assists from match stats' do
       # team_1_player has 2 goals, 1 assist in this match; then we "substitute" them (soft-delete PlayerTeam)
       player_team = PlayerTeam.find_by(player_id: team_1_player.id, team_id: team_1.id)
@@ -282,5 +283,6 @@ RSpec.describe MatchPresenter do
       json = presenter.as_json
       expect(json[:team_2_goalkeepers].map { |p| p[:id] }).to include(gk.id)
     end
+    # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
   end
 end

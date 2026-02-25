@@ -23,7 +23,7 @@ class Round < ApplicationRecord
   def ensure_no_matches
     return unless matches.exists?
 
-    errors.add(:base, "Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro.")
+    errors.add(:base, 'Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro.')
     throw(:abort)
   end
 end

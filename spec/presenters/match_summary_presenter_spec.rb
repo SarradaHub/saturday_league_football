@@ -18,12 +18,14 @@ RSpec.describe MatchSummaryPresenter do
       expect(json.keys).to match_array(expected)
     end
 
+    # rubocop:disable RSpec/MultipleExpectations
     it 'includes id, name and team names' do
       expect(json[:id]).to eq(match.id)
       expect(json[:name]).to eq('A vs B')
       expect(json[:team_1_name]).to eq('Team A')
       expect(json[:team_2_name]).to eq('Team B')
     end
+    # rubocop:enable RSpec/MultipleExpectations
 
     it 'does not include full team objects or statistics' do
       expect(json).not_to have_key(:team_1_players)

@@ -19,6 +19,7 @@ RSpec.describe IdentityServiceClient do
       expect(result[:error]).to eq('Identity service not configured')
     end
 
+    # rubocop:disable RSpec/ExampleLength
     it 'returns valid when CircuitBreakerService returns success and data' do
       allow(ENV).to receive(:fetch).and_call_original
       allow(ENV).to receive(:fetch).with('IDENTITY_SERVICE_URL', 'http://identity-service:3001')
@@ -41,7 +42,9 @@ RSpec.describe IdentityServiceClient do
       expect(result[:valid]).to be(true)
       expect(result[:user]).to eq({ 'id' => 1, 'email' => 'user@example.com' })
     end
+    # rubocop:enable RSpec/ExampleLength
 
+    # rubocop:disable RSpec/ExampleLength
     it 'returns invalid when CircuitBreakerService reports failure' do
       allow(ENV).to receive(:fetch).and_call_original
       allow(ENV).to receive(:fetch).with('IDENTITY_SERVICE_URL', 'http://identity-service:3001')
@@ -59,6 +62,7 @@ RSpec.describe IdentityServiceClient do
       expect(result[:valid]).to be(false)
       expect(result[:error]).to eq('Token validation failed')
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 
   describe '.get_user' do
@@ -71,6 +75,7 @@ RSpec.describe IdentityServiceClient do
       expect(result).to be_nil
     end
 
+    # rubocop:disable RSpec/ExampleLength
     it 'returns user data when CircuitBreakerService returns success' do
       allow(ENV).to receive(:fetch).and_call_original
       allow(ENV).to receive(:fetch).with('IDENTITY_SERVICE_URL', 'http://identity-service:3001')
@@ -90,7 +95,9 @@ RSpec.describe IdentityServiceClient do
 
       expect(result).to eq({ 'id' => 1, 'email' => 'user@example.com' })
     end
+    # rubocop:enable RSpec/ExampleLength
 
+    # rubocop:disable RSpec/ExampleLength
     it 'returns nil when CircuitBreakerService reports failure' do
       allow(ENV).to receive(:fetch).and_call_original
       allow(ENV).to receive(:fetch).with('IDENTITY_SERVICE_URL', 'http://identity-service:3001')
@@ -108,6 +115,6 @@ RSpec.describe IdentityServiceClient do
 
       expect(result).to be_nil
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 end
-

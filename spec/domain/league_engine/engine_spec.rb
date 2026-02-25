@@ -7,6 +7,7 @@
   let(:match) { create(:match, :with_round, :with_team_1, :with_team_2) }
 
   describe '.suggest_next_match' do
+    # rubocop:disable RSpec/ExampleLength
     it 'delegates to LeagueEngine::MatchSequence' do
       sequence_double = instance_double(LeagueEngine::MatchSequence)
       allow(LeagueEngine::MatchSequence).to receive(:new)
@@ -20,9 +21,11 @@
       expect(sequence_double).to have_received(:suggest)
       expect(result).to eq({ needs_winner_selection: false })
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 
   describe '.create_next_match' do
+    # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations
     it 'delegates to LeagueEngine::MatchSequence with winner_team_id' do
       sequence_double = instance_double(LeagueEngine::MatchSequence)
       allow(LeagueEngine::MatchSequence).to receive(:new)
@@ -38,6 +41,7 @@
       expect(result).to have_key(:match)
       expect(result).to have_key(:queue)
     end
+    # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
   end
 
   describe '.redistribute_after_finalize' do
@@ -62,6 +66,7 @@
   end
 
   describe '.substitute_in_match' do
+    # rubocop:disable RSpec/ExampleLength
     it 'delegates to Matches::SubstitutePlayer' do
       payload = {
         removed_player_id: 1,
@@ -85,9 +90,11 @@
       )
       expect(result).to eq(payload)
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 
   describe '.replace_in_round' do
+    # rubocop:disable RSpec/ExampleLength
     it 'delegates to Substitutions::ReplacePlayer' do
       round = match.round
       payload = {
@@ -105,9 +112,11 @@
       )
       expect(result).to eq(payload)
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 
   describe '.add_goalkeeper' do
+    # rubocop:disable RSpec/ExampleLength
     it 'delegates to PlayerStats::AddGoalkeeper' do
       stat = instance_double(PlayerStat)
       allow(PlayerStats::AddGoalkeeper).to receive(:call).and_return(stat)
@@ -125,9 +134,11 @@
       )
       expect(result).to eq(stat)
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 
   describe '.bulk_update_player_stats' do
+    # rubocop:disable RSpec/ExampleLength
     it 'delegates to PlayerStats::BulkUpsert' do
       payload = [{ player_id: 1, team_id: match.team_1_id, goals: 1 }]
       relation_double = instance_double(ActiveRecord::Relation)
@@ -144,6 +155,6 @@
       )
       expect(result).to eq(relation_double)
     end
+    # rubocop:enable RSpec/ExampleLength
   end
  end
-

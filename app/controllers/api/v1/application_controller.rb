@@ -22,11 +22,11 @@ module Api
         if base_relation.nil?
           base_relation = if collection.is_a?(ActiveRecord::Relation)
                             collection.except(:limit, :offset)
-                          elsif collection.respond_to?(:first) && collection.first.is_a?(ActiveRecord::Base)
+          elsif collection.respond_to?(:first) && collection.first.is_a?(ActiveRecord::Base)
                             collection.first.class.all
-                          else
+          else
                             collection
-                          end
+          end
         end
 
         if base_relation.is_a?(ActiveRecord::Relation)
@@ -41,7 +41,7 @@ module Api
         includes_list = parse_includes
         serialized_items = if serializer_class
                              items.map { |item| serializer_class.new(item).as_json }
-                           elsif presenter_class
+        elsif presenter_class
                              skip_nested = presenter_class == RoundPresenter && !includes_list.any?
                              items.map do |item|
                                presenter_class.new(item).as_json(
@@ -50,9 +50,9 @@ module Api
                                  skip_nested: skip_nested
                                )
                              end
-                           else
+        else
                              items.map(&:as_json)
-                           end
+        end
 
         allowed_fields = parse_fields
         serialized_items = filter_fields(serialized_items, allowed_fields) if allowed_fields.present?

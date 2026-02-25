@@ -17,6 +17,7 @@ RSpec.describe PlayerRound, type: :model do
       expect(Rounds::AddPlayerToLastActiveTeam).not_to have_received(:call)
     end
 
+    # rubocop:disable RSpec/ExampleLength
     it 'triggers AddPlayerToLastActiveTeam when round has finalized matches' do
       team1 = create(:team, round:, name: 'Time 1')
       team2 = create(:team, round:, name: 'Time 2')
@@ -30,6 +31,7 @@ RSpec.describe PlayerRound, type: :model do
       expect(Rounds::AddPlayerToLastActiveTeam).to have_received(:call).with(round: round, player: player)
       expect(Rounds::RoundTeamGenerator).not_to have_received(:call)
     end
+    # rubocop:enable RSpec/ExampleLength
 
     it 'triggers RoundTeamGenerator on destroy' do
       allow(Rounds::RoundTeamGenerator).to receive(:call)

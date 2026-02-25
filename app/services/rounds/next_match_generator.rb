@@ -112,9 +112,9 @@ module Rounds
 
             last_draw_effective_loser = if index == completed_matches.size - 1
                                           match.team_1
-                                        else
+            else
                                           last_draw_effective_loser
-                                        end
+            end
             last_draw_both_redistribute = false if index == completed_matches.size - 1
           end
         else

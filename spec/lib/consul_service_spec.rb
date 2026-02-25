@@ -8,7 +8,9 @@ RSpec.describe ConsulService do
       allow(ENV).to receive(:fetch).with('PORT', '3000').and_return('3000')
       allow(ENV).to receive(:fetch).with('CONSUL_URL', 'http://localhost:8500').and_return('http://consul:8500')
 
+      # rubocop:disable RSpec/VerifiedDoubles
       allow(Diplomat).to receive(:configure).and_yield(double('config', url: nil).as_null_object)
+      # rubocop:enable RSpec/VerifiedDoubles
       allow(Diplomat::Service).to receive(:register)
       allow(Rails.logger).to receive(:info)
     end
@@ -49,6 +51,7 @@ RSpec.describe ConsulService do
       expect(result).to be_nil
     end
 
+    # rubocop:disable RSpec/ExampleLength
     it 'returns the URL of the first passing service' do
       services = [
         { Status: 'passing', Address: '10.0.0.1', Port: 4000 },
@@ -60,7 +63,9 @@ RSpec.describe ConsulService do
 
       expect(result).to eq('http://10.0.0.1:4000')
     end
+    # rubocop:enable RSpec/ExampleLength
 
+    # rubocop:disable RSpec/ExampleLength
     it 'falls back to the first service when none are passing' do
       services = [
         { Status: 'critical', Address: '10.0.0.1', Port: 4000 }
@@ -71,6 +76,6 @@ RSpec.describe ConsulService do
 
       expect(result).to eq('http://10.0.0.1:4000')
     end
+    # rubocop:enable RSpec/ExampleLength
   end
 end
-

@@ -16,6 +16,7 @@ RSpec.describe Rounds::AddPlayerToLastActiveTeam do
 
   describe '.call' do
     context 'when last active team has capacity' do
+      # rubocop:disable RSpec/ExampleLength
       it 'adds player to the last active team by created_at' do
         team1 = create(:team, round:, name: 'Time 1')
         team2 = create(:team, round:, name: 'Time 2')
@@ -37,7 +38,9 @@ RSpec.describe Rounds::AddPlayerToLastActiveTeam do
         expect(result).to eq(team2)
         expect(team2.reload.players).to include(new_player)
       end
+      # rubocop:enable RSpec/ExampleLength
 
+      # rubocop:disable RSpec/ExampleLength
       it 'ignores blocked teams' do
         team1 = create(:team, round:, name: 'Time 1', is_blocked: false)
         team2 = create(:team, round:, name: 'Time 2', is_blocked: true)
@@ -57,9 +60,11 @@ RSpec.describe Rounds::AddPlayerToLastActiveTeam do
         expect(result).to eq(team1)
         expect(team1.reload.players).to include(new_player)
       end
+      # rubocop:enable RSpec/ExampleLength
     end
 
     context 'when all active teams are full' do
+      # rubocop:disable RSpec/ExampleLength
       it 'creates a new team and adds the player' do
         players = create_list(:player, 6)
         players.each { |p| create_player_round_without_auto_balance(player: p, round:) }
@@ -76,9 +81,11 @@ RSpec.describe Rounds::AddPlayerToLastActiveTeam do
         new_team = round.teams.order(created_at: :desc).first
         expect(new_team.players).to contain_exactly(new_player)
       end
+      # rubocop:enable RSpec/ExampleLength
     end
 
     context 'when using the most recent team among multiple active ones' do
+      # rubocop:disable RSpec/ExampleLength
       it 'selects the team with highest created_at when multiple have capacity' do
         team1 = create(:team, round:, name: 'Time 1')
         team2 = create(:team, round:, name: 'Time 2')
@@ -99,6 +106,7 @@ RSpec.describe Rounds::AddPlayerToLastActiveTeam do
         expect(result).to eq(team3)
         expect(team3.reload.players).to include(new_player)
       end
+      # rubocop:enable RSpec/ExampleLength
     end
 
     context 'when round or player is blank' do

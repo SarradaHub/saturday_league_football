@@ -58,14 +58,21 @@ module Api
       end
 
       def destroy
-        if @round.destroy
-          head :no_content
-        else
-          message = @round.errors.full_messages.join(", ")
+        if @round.matches.exists?
           render json: {
             error: {
-              code: "round_has_matches",
-              message: message.presence || "Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro."
+              code: 'round_has_matches',
+              message: 'Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro.'
+            }
+          }, status: :unprocessable_content
+        elsif @round.destroy
+          head :no_content
+        else
+          message = @round.errors.full_messages.join(', ')
+          render json: {
+            error: {
+              code: 'round_has_matches',
+              message: message.presence || 'Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro.'
             }
           }, status: :unprocessable_content
         end

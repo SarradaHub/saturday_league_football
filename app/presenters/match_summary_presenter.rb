@@ -36,9 +36,9 @@ class MatchSummaryPresenter < ApplicationPresenter
     team_goals = PlayerStat.where(match_id: resource.id, team_id: team_id).sum(:goals)
     opponent_own_goals = if opponent_id.blank?
                            0
-                         else
+    else
                            PlayerStat.where(match_id: resource.id, team_id: opponent_id).sum(:own_goals)
-                         end
+    end
     team_goals + opponent_own_goals
   end
 

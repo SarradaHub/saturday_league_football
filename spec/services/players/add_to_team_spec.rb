@@ -52,14 +52,17 @@ RSpec.describe Players::AddToTeam do
       before do
         pt = FactoryBot.create(:player_team, player: player, team: team)
         pt.destroy
-        expect(PlayerTeam.with_deleted.find_by(team: team, player: player)).to be_deleted
       end
 
+      # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations
       it 'restores the soft-deleted PlayerTeam instead of creating a duplicate' do
+        expect(PlayerTeam.with_deleted.find_by(team: team, player: player)).to be_deleted
+
         expect(PlayerTeam.with_deleted.where(player: player, team: team).count).to eq(1)
         expect { call_result }.not_to change { PlayerTeam.with_deleted.where(player: player, team: team).count }
         expect(player.teams.reload).to include(team)
       end
+      # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
 
       it 'returns the player' do
         expect(call_result).to eq(player)

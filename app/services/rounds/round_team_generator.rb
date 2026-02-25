@@ -133,7 +133,7 @@ module Rounds
     # Excludes blocked and goalkeeper_only players.
     def active_players_in_distribution_order(active_team_ids)
       excluded_ids = round.player_rounds
-        .where("blocked = true OR goalkeeper_only = true")
+        .where('blocked = true OR goalkeeper_only = true')
         .pluck(:player_id)
         .to_set
 

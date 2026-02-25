@@ -64,6 +64,7 @@ RSpec.describe PlayerStats::AddGoalkeeper do
       }.not_to change(PlayerTeam, :count)
     end
 
+    # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations
     it 'restores a soft-deleted PlayerTeam when adding the same player to the same team again' do
       pt = PlayerTeam.create!(team: team, player: player)
       pt.soft_delete
@@ -73,5 +74,6 @@ RSpec.describe PlayerStats::AddGoalkeeper do
       expect(player.teams.reload).to include(team)
       expect(pt.reload).not_to be_deleted
     end
+    # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
   end
 end

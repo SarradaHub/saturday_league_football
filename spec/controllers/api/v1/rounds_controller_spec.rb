@@ -197,7 +197,10 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
     context 'when round has associated matches' do
       let!(:team1) { FactoryBot.create(:team, round: round) }
       let!(:team2) { FactoryBot.create(:team, round: round) }
-      let!(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+
+      before do
+        FactoryBot.create(:match, round: round, team_1: team1, team_2: team2)
+      end
 
       it 'does not delete the round and returns unprocessable content' do
         expect { delete :destroy, params: { id: round.id }, format: :json }

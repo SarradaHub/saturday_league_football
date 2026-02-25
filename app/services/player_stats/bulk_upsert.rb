@@ -36,11 +36,11 @@ module PlayerStats
         # 0 = first: has goals; 1 = then: has assists only; 2 = last: neither
         order_key = if goals.positive?
                       0
-                    elsif assists.positive?
+        elsif assists.positive?
                       1
-                    else
+        else
                       2
-                    end
+        end
         [h[:team_id], order_key]
       end
     end

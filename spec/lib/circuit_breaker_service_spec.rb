@@ -35,6 +35,7 @@ RSpec.describe CircuitBreakerService do
       allow(described_class).to receive(:create_client).with(service_name).and_return(faraday_client)
     end
 
+    # rubocop:disable RSpec/ExampleLength
     it 'returns success with parsed data when the call succeeds' do
       response = instance_double(Faraday::Response, body: '{"foo":"bar"}', status: 200)
       allow(faraday_client).to receive(:get).and_return(response)
@@ -45,6 +46,7 @@ RSpec.describe CircuitBreakerService do
       expect(result[:data]).to eq({ 'foo' => 'bar' })
       expect(result[:status]).to eq(200)
     end
+    # rubocop:enable RSpec/ExampleLength
 
     it 'handles open circuit errors gracefully' do
       allow(faraday_client).to receive(:get).and_raise(Circuitbox::OpenCircuitError.new('circuit open'))
@@ -65,4 +67,3 @@ RSpec.describe CircuitBreakerService do
     end
   end
 end
-

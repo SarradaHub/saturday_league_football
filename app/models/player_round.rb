@@ -37,7 +37,7 @@ class PlayerRound < ApplicationRecord
   end
 
   def round_has_finalized_matches?
-    round.matches.where("draw IN (true, false) OR winning_team_id IS NOT NULL").exists?
+    round.matches.where('draw IN (true, false) OR winning_team_id IS NOT NULL').exists?
   end
 
   def update_championship_players_count
