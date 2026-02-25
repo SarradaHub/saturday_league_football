@@ -24,10 +24,11 @@ RSpec.configure do |config|
     # This allows DatabaseCleaner to work in Docker environments where DATABASE_URL points to a service
     # The safeguard is disabled via ENV['DATABASE_CLEANER_ALLOW_REMOTE_DATABASE_URL'] in docker-compose.test.yml
     if Rails.env.test?
-      # Allow Docker database URLs (postgresql://postgres:password@db:5432/...)
+      # Allow Docker database URLs and CI (GitHub Actions uses postgres://, Docker uses postgresql://)
       DatabaseCleaner.url_allowlist = [
-        %r{postgresql://.*@db:5432/.*},
-        %r{postgresql://.*@localhost:5432/.*}
+        %r{postgres(ql)?://.*@db:5432/.*},
+        %r{postgres(ql)?://.*@localhost:5432/.*},
+        %r{postgres(ql)?://.*@127\.0\.0\.1:5432/.*}
       ]
     end
 
