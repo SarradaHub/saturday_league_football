@@ -47,5 +47,23 @@ RSpec.describe Players::AddToTeam do
         expect(player.teams.count).to eq(1)
       end
     end
+
+    context 'when player was previously removed from team (soft-deleted PlayerTeam)' do
+      before do
+        pt = FactoryBot.create(:player_team, player: player, team: team)
+        pt.destroy
+        expect(PlayerTeam.with_deleted.find_by(team: team, player: player)).to be_deleted
+      end
+
+      it 'restores the soft-deleted PlayerTeam instead of creating a duplicate' do
+        expect(PlayerTeam.with_deleted.where(player: player, team: team).count).to eq(1)
+        expect { call_result }.not_to change { PlayerTeam.with_deleted.where(player: player, team: team).count }
+        expect(player.teams.reload).to include(team)
+      end
+
+      it 'returns the player' do
+        expect(call_result).to eq(player)
+      end
+    end
   end
 end

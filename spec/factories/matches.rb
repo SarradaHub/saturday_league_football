@@ -2,7 +2,7 @@
 
 FactoryBot.define do
   factory :match do
-    name { "#{Faker::Number.unique.number(digits: 3)}º Partida" }
+    name { "#{Faker::Number.unique.number(digits: 3)}ª Partida" }
     draw { [true, false].sample }
 
     trait :with_round do

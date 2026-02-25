@@ -141,89 +141,6 @@ RSpec.describe MatchPresenter do
     end
   end
 
-  describe '#hash_to_player_array' do
-    context 'with valid hash' do
-      it 'converts hash to array of player serializations' do
-        # team_1_player is already added in main before block
-        hash = { team_1_player.display_name => 2 }
-        result = presenter.send(:hash_to_player_array, team_1, hash)
-        expect(result).to be_an(Array)
-        expect(result.length).to eq(2)
-        expect(result.first[:id]).to eq(team_1_player.id)
-      end
-    end
-
-    context 'with empty hash' do
-      it 'returns empty array' do
-        result = presenter.send(:hash_to_player_array, team_1, {})
-        expect(result).to eq([])
-      end
-    end
-
-    context 'when hash is blank' do
-      it 'returns empty array' do
-        result = presenter.send(:hash_to_player_array, team_1, nil)
-        expect(result).to eq([])
-      end
-    end
-
-    context 'when hash is not a Hash' do
-      it 'returns empty array' do
-        result = presenter.send(:hash_to_player_array, team_1, 'not a hash')
-        expect(result).to eq([])
-      end
-    end
-
-    context 'when player is not found' do
-      it 'skips players not found in team' do
-        # team_1_player is already added in main before block
-        hash = { 'Non-existent Player' => 1, team_1_player.display_name => 1 }
-        result = presenter.send(:hash_to_player_array, team_1, hash)
-        expect(result.length).to eq(1)
-        expect(result.first[:id]).to eq(team_1_player.id)
-      end
-    end
-
-    context 'with count zero' do
-      it 'returns empty array when count is 0' do
-        hash = { team_1_player.display_name => 0 }
-        result = presenter.send(:hash_to_player_array, team_1, hash)
-        expect(result).to eq([])
-      end
-    end
-  end
-
-  describe '#find_player_by_name' do
-    context 'when team and name are present' do
-      it 'finds player by name' do
-        # team_1_player is already added in main before block
-        result = presenter.send(:find_player_by_name, team_1, team_1_player.display_name)
-        expect(result).to eq(team_1_player)
-      end
-    end
-
-    context 'when team is blank' do
-      it 'returns nil' do
-        result = presenter.send(:find_player_by_name, nil, team_1_player.display_name)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'when name is blank' do
-      it 'returns nil' do
-        result = presenter.send(:find_player_by_name, team_1, nil)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'when player is not found' do
-      it 'returns nil' do
-        result = presenter.send(:find_player_by_name, team_1, 'Non-existent Player')
-        expect(result).to be_nil
-      end
-    end
-  end
-
   describe '#team_1_goals_scorer_array' do
     it 'converts goals_scorer hash to array' do
       # team_1_player and stats are already created in main before block
@@ -339,6 +256,31 @@ RSpec.describe MatchPresenter do
       json = presenter_no_stats.as_json
       expect(json[:team_1_goals_scorer]).to eq([])
       expect(json[:team_2_goals_scorer]).to eq([])
+    end
+  end
+
+  context 'when player was substituted (no longer on team)' do
+    it 'still shows that player in goals_scorer and assists from match stats' do
+      # team_1_player has 2 goals, 1 assist in this match; then we "substitute" them (soft-delete PlayerTeam)
+      player_team = PlayerTeam.find_by(player_id: team_1_player.id, team_id: team_1.id)
+      player_team&.soft_delete
+
+      json = presenter.as_json
+      expect(json[:team_1_goals_scorer]).to be_an(Array)
+      expect(json[:team_1_goals_scorer].length).to eq(2)
+      expect(json[:team_1_goals_scorer].first[:id]).to eq(team_1_player.id)
+      expect(json[:team_1_goals_scorer].first[:display_name]).to eq(team_1_player.display_name)
+      expect(json[:team_1_assists].map { |p| p[:id] }).to include(team_1_player.id)
+    end
+
+    it 'still shows substituted player in goalkeepers from match stats' do
+      gk = FactoryBot.create(:player)
+      team_2.players << gk
+      FactoryBot.create(:player_stat, player: gk, team: team_2, match: match, goals: 0, assists: 0, own_goals: 0, was_goalkeeper: true)
+      PlayerTeam.find_by(player_id: gk.id, team_id: team_2.id).soft_delete
+
+      json = presenter.as_json
+      expect(json[:team_2_goalkeepers].map { |p| p[:id] }).to include(gk.id)
     end
   end
 end

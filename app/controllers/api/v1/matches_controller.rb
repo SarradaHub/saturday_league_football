@@ -28,6 +28,15 @@ module Api
 
       def show
         @match = Matches::FindQuery.new(id: params[:id], user_id: current_user.id).call
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Match not found' }, status: :not_found
+      end
+
+      def summary
+        @match = Matches::FindQuery.new(id: params[:id], user_id: current_user.id).call
+        render json: MatchSummaryPresenter.new(@match).as_json
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Match not found' }, status: :not_found
       end
 
       def create
@@ -53,14 +62,14 @@ module Api
       end
 
       def finalize
-        match = Matches::Finalize.call(match: @match)
+        match = LeagueEngine::Engine.finalize_match(match: @match)
         render json: MatchPresenter.new(match).as_json
       rescue StandardError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
       end
 
       def substitute_player
-        result = Matches::SubstitutePlayer.call(
+        result = LeagueEngine::Engine.substitute_in_match(
           match: @match,
           player_id: params[:player_id],
           replacement_player_id: params[:replacement_player_id],

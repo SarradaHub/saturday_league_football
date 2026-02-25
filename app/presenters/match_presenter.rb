@@ -107,75 +107,52 @@ class MatchPresenter < ApplicationPresenter
   def team_players(team)
     return [] if team.blank?
 
-    if team.association(:players).loaded?
-      team.players.map { |player| PlayerSerializer.new(player).as_json }
-    else
-      team.players.load.map { |player| PlayerSerializer.new(player).as_json }
+    team.player_teams.includes(:player).order(created_at: :asc).each_with_index.map do |pt, idx|
+      PlayerSerializer.new(pt.player).as_json.merge(inscription_order: idx + 1)
     end
-  end
-
-  def hash_to_player_array(team, hash)
-    return [] if hash.blank? || !hash.is_a?(Hash)
-
-    result = []
-    hash.each do |player_name, count|
-      player = find_player_by_name(team, player_name)
-      next unless player
-
-      count.to_i.times do
-        result << PlayerSerializer.new(player).as_json
-      end
-    end
-    result
-  end
-
-  def find_player_by_name(team, name)
-    return nil if team.blank? || name.blank?
-
-    team.players.find { |p| p.display_name == name.to_s }
   end
 
   def team_1_goals_scorer_array
-    hash_to_player_array(resource.team_1, team_1_goals_scorer)
+    stats_to_player_array(statistics.goal_scorers_with_players(resource.team_1))
   end
 
   def team_1_assists_array
-    hash_to_player_array(resource.team_1, team_1_assists)
+    stats_to_player_array(statistics.assists_with_players(resource.team_1))
   end
 
   def team_1_own_goals_scorer_array
     # Own goals from team_2 count for team_1
-    hash_to_player_array(resource.team_2, statistics.breakdown_for(resource.team_2, resource.team_1)[:own_goals])
+    stats_to_player_array(statistics.own_goals_scorers_with_players(resource.team_2))
   end
 
   def team_2_goals_scorer_array
-    hash_to_player_array(resource.team_2, team_2_goals_scorer)
+    stats_to_player_array(statistics.goal_scorers_with_players(resource.team_2))
   end
 
   def team_2_assists_array
-    hash_to_player_array(resource.team_2, team_2_assists)
+    stats_to_player_array(statistics.assists_with_players(resource.team_2))
   end
 
   def team_2_own_goals_scorer_array
     # Own goals from team_1 count for team_2
-    hash_to_player_array(resource.team_1, statistics.breakdown_for(resource.team_1, resource.team_2)[:own_goals])
+    stats_to_player_array(statistics.own_goals_scorers_with_players(resource.team_1))
   end
 
   def team_1_goalkeepers_array
-    goalkeepers_to_player_array(resource.team_1, team_1_goalkeepers)
+    statistics.goalkeepers_with_players(resource.team_1).map { |player| PlayerSerializer.new(player).as_json }
   end
 
   def team_2_goalkeepers_array
-    goalkeepers_to_player_array(resource.team_2, team_2_goalkeepers)
+    statistics.goalkeepers_with_players(resource.team_2).map { |player| PlayerSerializer.new(player).as_json }
   end
 
-  def goalkeepers_to_player_array(team, goalkeeper_names)
-    return [] if team.blank? || goalkeeper_names.blank? || !goalkeeper_names.is_a?(Array)
+  # Build array of serialized players from stats: [[player, count], ...] -> count copies of each player.
+  def stats_to_player_array(player_count_pairs)
+    return [] if player_count_pairs.blank?
 
     result = []
-    goalkeeper_names.each do |player_name|
-      player = find_player_by_name(team, player_name)
-      result << PlayerSerializer.new(player).as_json if player
+    player_count_pairs.each do |player, count|
+      count.to_i.times { result << PlayerSerializer.new(player).as_json }
     end
     result
   end

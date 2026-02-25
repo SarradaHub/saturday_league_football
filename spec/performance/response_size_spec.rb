@@ -2,7 +2,7 @@ require 'rails_helper'
 
 # rubocop:disable RSpec/MultipleMemoizedHelpers, RSpec/ScatteredLet, RSpec/ExampleLength
 
-RSpec.describe 'Response size reductions with sparse fieldsets', type: :request, slow: true do
+RSpec.describe 'Response size reductions with sparse fieldsets', :slow, type: :request do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:endpoints) do
     [

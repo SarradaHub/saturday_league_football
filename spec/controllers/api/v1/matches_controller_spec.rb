@@ -323,11 +323,17 @@ RSpec.describe Api::V1::MatchesController, type: :controller do
         expect(response).to have_http_status(:ok)
       end
 
-      it 'returns substitution details' do
+      it 'returns removed player id and name' do
         expect(json_response['removed_player_id']).to eq(player_to_remove.id)
         expect(json_response['removed_player_name']).to eq(player_to_remove.display_name)
+      end
+
+      it 'returns replacement player id and name' do
         expect(json_response['replacement_player_id']).to eq(replacement_player.id)
         expect(json_response['replacement_player_name']).to eq(replacement_player.display_name)
+      end
+
+      it 'returns team id and name' do
         expect(json_response['team_id']).to eq(team1.id)
         expect(json_response['team_name']).to eq(team1.name)
       end
@@ -409,6 +415,48 @@ RSpec.describe Api::V1::MatchesController, type: :controller do
       it 'returns error response' do
         expect(response).to have_http_status(:unprocessable_content)
         expect(json_response['errors']).to be_present
+      end
+    end
+  end
+
+  describe '#summary' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+    let(:team1) { FactoryBot.create(:team, round: round) }
+    let(:team2) { FactoryBot.create(:team, round: round) }
+    let(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+
+    before { perform_get(:summary, params: { id: match.id }) }
+
+    it 'returns ok' do
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'returns only summary fields' do
+      expected_keys = %w[id name round_id team_1_id team_2_id winning_team_id draw team_1_goals team_2_goals team_1_name team_2_name created_at]
+      expect(json_response.keys).to match_array(expected_keys)
+    end
+
+    it 'does not include full team objects or statistics' do
+      expect(json_response).not_to have_key('team_1_players')
+      expect(json_response).not_to have_key('statistics')
+    end
+
+    it 'includes id and name' do
+      expect(json_response['id']).to eq(match.id)
+      expect(json_response['name']).to eq(match.name)
+    end
+
+    context 'when match does not exist' do
+      let(:non_existent_id) { (Match.maximum(:id) || 0) + 99_999 }
+
+      before { perform_get(:summary, params: { id: non_existent_id }) }
+
+      it 'returns 404' do
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'returns error message' do
+        expect(json_response).to have_key('error')
       end
     end
   end

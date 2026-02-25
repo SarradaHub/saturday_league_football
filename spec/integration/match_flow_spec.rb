@@ -6,7 +6,7 @@ require 'rails_helper'
 
 # rubocop:disable RSpec/ExampleLength
 
-RSpec.describe 'Match Flow Integration', type: :request, slow: true do
+RSpec.describe 'Match Flow Integration', :slow, type: :request do
   let(:current_user) { FactoryBot.create(:user, external_id: '1', email: 'test.user@example.com') }
   let(:auth_header) { { 'Authorization' => 'Bearer valid_token' } }
   let(:json_response) { JSON.parse(response.body) }

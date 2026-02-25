@@ -12,16 +12,23 @@ module Players
     end
 
     def call
-      scope = Player.all
+      scope = Player.select(
+        :id,
+        :first_name,
+        :last_name,
+        :nickname,
+        :created_at,
+        :updated_at
+      )
       scope = scope.in_championship(championship_id) if championship_id.present?
 
       if round_id.present? || user_id.present?
         scope = scope.joins(player_rounds: { round: :championship })
-        
+
         conditions = {}
         conditions[:player_rounds] = { round_id: round_id } if round_id.present?
         conditions[:championships] = { user_id: user_id } if user_id.present?
-        
+
         scope = scope.where(conditions) if conditions.any?
         scope = scope.distinct
       end

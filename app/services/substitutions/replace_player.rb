@@ -5,7 +5,14 @@ module Substitutions
     class PlayerNotInRoundError < StandardError; end
     class NoAvailablePlayerError < StandardError; end
 
-    def initialize(round:, player_id:, match_id: nil)
+    def initialize(*args, round: nil, player_id: nil, match_id: nil, **_kwargs)
+      if round.nil? && args.first.is_a?(Hash)
+        options = args.first
+        round = options[:round]
+        player_id = options[:player_id]
+        match_id = options[:match_id]
+      end
+
       @round = round
       @player_id = player_id
       @match_id = match_id

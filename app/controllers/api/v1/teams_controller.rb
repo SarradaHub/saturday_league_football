@@ -3,7 +3,7 @@
 module Api
   module V1
     class TeamsController < Api::V1::ApplicationController
-      before_action :set_team, only: %i[update destroy]
+      before_action :set_team, only: %i[update destroy toggle_block]
       def index
         includes_list = parse_includes
         pagination = paginate_params
@@ -55,6 +55,13 @@ module Api
       def destroy
         @team.destroy
         head :no_content
+      end
+
+      def toggle_block
+        @team.update!(is_blocked: !@team.is_blocked)
+        render json: { team_id: @team.id, is_blocked: @team.is_blocked }, status: :ok
+      rescue StandardError => e
+        render json: { errors: [e.message] }, status: :unprocessable_content
       end
 
       private

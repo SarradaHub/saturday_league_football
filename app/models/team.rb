@@ -16,4 +16,9 @@ class Team < ApplicationRecord
   validates_presence_of :name
 
   scope :not_blocked, -> { where(is_blocked: false) }
+
+  # Jogadores na ordem de inscrição no time (player_teams.created_at).
+  def ordered_players
+    player_teams.includes(:player).order(created_at: :asc).map(&:player).compact
+  end
 end

@@ -258,84 +258,41 @@ RSpec.describe PlayerStats::BulkUpsert do
       end
     end
 
-    context 'with goalkeeper validation' do
-      let(:player3) { FactoryBot.create(:player) }
-
-      context 'when player is both goalkeeper and line player in same match' do
-        let(:payload) do
-          [
-            {
-              player_id: player1.id,
-              team_id: team1.id,
-              goals: 1,
-              assists: 0,
-              own_goals: 0,
-              was_goalkeeper: false
-            },
-            {
-              player_id: player1.id,
-              team_id: team2.id,
-              goals: 0,
-              assists: 0,
-              own_goals: 0,
-              was_goalkeeper: true
-            }
-          ]
-        end
-
-        it 'raises InvalidGoalkeeperError' do
-          expect {
-            call_result
-          }.to raise_error(PlayerStats::BulkUpsert::InvalidGoalkeeperError)
-        end
+    context 'when player is both goalkeeper and line player in same match' do
+      let(:payload) do
+        [
+          { player_id: player1.id, team_id: team1.id, goals: 1, assists: 0, own_goals: 0, was_goalkeeper: false },
+          { player_id: player1.id, team_id: team2.id, goals: 0, assists: 0, own_goals: 0, was_goalkeeper: true }
+        ]
       end
 
-      context 'when player is goalkeeper in one match and line player in another' do
-        let(:match2) { FactoryBot.create(:match, round: match.round, team_1: team1, team_2: team2) }
-        let(:payload) do
-          [
-            {
-              player_id: player1.id,
-              team_id: team1.id,
-              goals: 1,
-              assists: 0,
-              own_goals: 0,
-              was_goalkeeper: false
-            }
-          ]
-        end
+      it 'raises InvalidGoalkeeperError' do
+        expect { call_result }.to raise_error(PlayerStats::BulkUpsert::InvalidGoalkeeperError)
+      end
+    end
 
-        before do
-          # Create goalkeeper stat in different match
-          FactoryBot.create(:player_stat, player: player1, team: team2, match: match2, goals: 0, assists: 0, own_goals: 0, was_goalkeeper: true)
-        end
-
-        it 'allows the operation' do
-          expect {
-            call_result
-          }.to change(PlayerStat, :count).by(1)
-        end
+    context 'when player is goalkeeper in one match and line player in another' do
+      let(:payload) do
+        [{ player_id: player1.id, team_id: team1.id, goals: 1, assists: 0, own_goals: 0, was_goalkeeper: false }]
       end
 
-      context 'when player is only goalkeeper' do
-        let(:payload) do
-          [
-            {
-              player_id: player1.id,
-              team_id: team1.id,
-              goals: 0,
-              assists: 0,
-              own_goals: 0,
-              was_goalkeeper: true
-            }
-          ]
-        end
+      before do
+        match2 = FactoryBot.create(:match, round: match.round, team_1: team1, team_2: team2)
+        FactoryBot.create(:player_stat, player: player1, team: team2, match: match2, goals: 0, assists: 0, own_goals: 0, was_goalkeeper: true)
+      end
 
-        it 'allows the operation' do
-          expect {
-            call_result
-          }.to change(PlayerStat, :count).by(1)
-        end
+      it 'allows the operation' do
+        expect { call_result }.to change(PlayerStat, :count).by(1)
+      end
+    end
+
+    context 'when player is only goalkeeper' do
+      let(:payload) do
+        [{ player_id: player1.id, team_id: team1.id, goals: 0, assists: 0, own_goals: 0, was_goalkeeper: true }]
+      end
+
+      it 'allows the operation' do
+        expect { call_result }.to change(PlayerStat, :count).by(1)
       end
     end
   end

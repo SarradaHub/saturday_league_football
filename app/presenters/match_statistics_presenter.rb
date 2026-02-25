@@ -18,6 +18,43 @@ class MatchStatisticsPresenter < ApplicationPresenter
     }
   end
 
+  # Player-based methods for match snapshot: resolve from stats so substituted players still appear.
+  def goal_scorers_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.goals.to_i.positive? }
+      .group_by { |stat| stat.player_id }
+      .map { |_player_id, stats| [stats.first.player, stats.sum { |s| s.goals.to_i }] }
+  end
+
+  def assists_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.assists.to_i.positive? }
+      .group_by { |stat| stat.player_id }
+      .map { |_player_id, stats| [stats.first.player, stats.sum { |s| s.assists.to_i }] }
+  end
+
+  def own_goals_scorers_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.own_goals.to_i.positive? }
+      .group_by { |stat| stat.player_id }
+      .map { |_player_id, stats| [stats.first.player, stats.sum { |s| s.own_goals.to_i }] }
+  end
+
+  def goalkeepers_with_players(team)
+    return [] if team.blank?
+
+    team_stats(team)
+      .select { |stat| stat.was_goalkeeper == true }
+      .map { |stat| stat.player }
+      .uniq
+  end
+
   private
 
   def goals_for(team, opponent)

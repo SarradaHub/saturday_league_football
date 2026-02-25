@@ -13,6 +13,7 @@ class Player < ApplicationRecord
   has_many :championships, through: :rounds
 
   validate :at_least_one_name_part_present
+  before_validation :strip_name_attributes
   before_destroy :cleanup_round_and_team_links
 
   scope :in_championship, lambda { |championship_id|
@@ -22,10 +23,17 @@ class Player < ApplicationRecord
   }
 
   def display_name
-    nickname.presence || [first_name, last_name].compact.join(' ').strip.presence || '—'
+    base = [first_name, last_name].compact.map { |s| s.to_s.strip }.reject(&:blank?)
+    nickname.to_s.strip.presence || base.join(' ').strip.presence || '—'
   end
 
   private
+
+  def strip_name_attributes
+    self.first_name = first_name.to_s.strip.presence
+    self.last_name = last_name.to_s.strip.presence
+    self.nickname = nickname.to_s.strip.presence
+  end
 
   def at_least_one_name_part_present
     return if first_name.present? || last_name.present? || nickname.present?

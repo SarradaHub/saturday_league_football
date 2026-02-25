@@ -15,7 +15,7 @@ module PlayerStats
       validate_goalkeeper_rules!
       ActiveRecord::Base.transaction do
         PlayerStat.where(match_id: match_id).delete_all
-        payload.each do |stat_params|
+        creation_order.each do |stat_params|
           PlayerStat.create!(build_attributes(stat_params))
         end
       end
@@ -26,6 +26,24 @@ module PlayerStats
     private
 
     attr_reader :match_id, :payload
+
+    # Create goal scorers before assist-only rows so model validation (assists ≤ team goals) sees existing goals.
+    def creation_order
+      payload.sort_by do |row|
+        h = (row.is_a?(Hash) ? row : row.to_h).symbolize_keys
+        goals = h[:goals].to_i
+        assists = h[:assists].to_i
+        # 0 = first: has goals; 1 = then: has assists only; 2 = last: neither
+        order_key = if goals.positive?
+                      0
+                    elsif assists.positive?
+                      1
+                    else
+                      2
+                    end
+        [h[:team_id], order_key]
+      end
+    end
 
     def build_attributes(stat_params)
       attributes = stat_params.is_a?(Hash) ? stat_params.symbolize_keys : stat_params.to_h.symbolize_keys
@@ -56,17 +74,11 @@ module PlayerStats
     end
 
     def validate_goalkeeper_rules!
-      by_player = payload.group_by { |row| (row.is_a?(Hash) ? row : row.to_h).symbolize_keys[:player_id] }
+      normalized_rows = payload.map { |row| row.is_a?(Hash) ? row : row.to_h }
+      return if LeagueEngine::Rules::GoalkeeperRule.valid_configuration?(normalized_rows)
 
-      by_player.each do |player_id, rows|
-        player_rows = rows.map { |r| (r.is_a?(Hash) ? r : r.to_h).symbolize_keys }
-        has_goalkeeper = player_rows.any? { |r| r[:was_goalkeeper] == true }
-        has_line_player = player_rows.any? { |r| r[:was_goalkeeper] == false }
-
-        if has_goalkeeper && has_line_player
-          raise InvalidGoalkeeperError, I18n.t('activerecord.errors.models.player_stat.attributes.was_goalkeeper.goalkeeper_not_line_player')
-        end
-      end
+      raise InvalidGoalkeeperError,
+            I18n.t('activerecord.errors.models.player_stat.attributes.was_goalkeeper.goalkeeper_not_line_player')
     end
   end
 end

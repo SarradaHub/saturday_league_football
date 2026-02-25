@@ -4,11 +4,19 @@ module Cacheable
   extend ActiveSupport::Concern
 
   included do
-    before_action :set_cache_headers, if: -> { request.get? }
-    after_action :set_etag_header, if: -> { request.get? }
+    before_action :set_cache_headers, if: -> { cacheable_request? }
+    after_action :set_etag_header, if: -> { cacheable_request? }
   end
 
   private
+
+  def cacheable_request?
+    request.get? && cacheable_resource?
+  end
+
+  def cacheable_resource?
+    false
+  end
 
   def set_cache_headers
     expires_in 5.minutes, public: false if request.get?

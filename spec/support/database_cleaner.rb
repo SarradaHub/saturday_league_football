@@ -30,7 +30,7 @@ RSpec.configure do |config|
         %r{postgresql://.*@localhost:5432/.*}
       ]
     end
-    
+
     # Use :truncation strategy for parallel tests to avoid deadlocks with counter caches
     # :transaction can cause deadlocks when multiple processes access the same database
     # :deletion can also cause deadlocks when updating counter caches
@@ -44,7 +44,7 @@ RSpec.configure do |config|
       # For non-parallel tests, use transaction for speed
       DatabaseCleaner.strategy = :transaction
     end
-    
+
     # Skip clean_with in Docker environments due to safeguard restrictions
     # Each test will clean the database via around(:each) anyway, so this is not critical
     # The safeguard blocks clean_with even with url_allowlist configured
@@ -58,12 +58,12 @@ RSpec.configure do |config|
     end
   end
 
-  config.around(:each) do |example|
+  config.around do |example|
     # In Docker test environments, use direct database truncation to avoid safeguard issues
     # Check if we're in a Docker environment by checking DATABASE_URL
     # Always use direct truncation if DATABASE_URL contains @db:5432 (Docker service name)
     use_direct_truncation = ENV['DATABASE_URL']&.include?('@db:5432')
-    
+
     if use_direct_truncation
       # Use direct database truncation as workaround for safeguard issue
       # Clean database before each test (similar to DatabaseCleaner.cleaning)

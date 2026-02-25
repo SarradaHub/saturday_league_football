@@ -11,7 +11,17 @@ module Matches
     end
 
     def call
-      scope = relation.order(created_at: :desc)
+      scope = relation.select(
+        :id,
+        :name,
+        :round_id,
+        :team_1_id,
+        :team_2_id,
+        :winning_team_id,
+        :draw,
+        :created_at,
+        :updated_at
+      ).order(created_at: :desc)
 
       scope = scope.joins(round: :championship).where(championships: { user_id: user_id }) if user_id.present?
 

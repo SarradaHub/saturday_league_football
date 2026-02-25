@@ -3,7 +3,7 @@
 module Api
   module V1
     class PlayersController < Api::V1::ApplicationController
-      before_action :set_player, only: %i[show update destroy add_to_round add_to_team match_stats]
+      before_action :set_player, only: %i[show update destroy add_to_round add_to_team match_stats summary]
       def index
         includes_list = parse_includes
         pagination = paginate_params
@@ -65,6 +65,10 @@ module Api
         )
       end
 
+      def summary
+        render json: PlayerSummaryPresenter.new(@player).as_json
+      end
+
       def update
         if @player.update(player_params)
           render json: PlayerPresenter.new(@player).as_json
@@ -84,6 +88,7 @@ module Api
         @player = Player
                   .joins(player_rounds: { round: :championship })
                   .where(championships: { user_id: current_user.id })
+                  .distinct
                   .includes(:player_stats, :rounds, :teams)
                   .find(params[:id])
       end

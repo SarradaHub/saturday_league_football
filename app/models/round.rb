@@ -13,8 +13,17 @@ class Round < ApplicationRecord
   validates_presence_of :name
   validates_presence_of :round_date
 
+  before_destroy :ensure_no_matches
+
   scope :for_championship, lambda { |championship_id|
     where(championship_id: championship_id)
       .order(round_date: :asc)
   }
+
+  def ensure_no_matches
+    return unless matches.exists?
+
+    errors.add(:base, "Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro.")
+    throw(:abort)
+  end
 end

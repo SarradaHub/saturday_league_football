@@ -2,8 +2,8 @@
 
 FactoryBot.define do
   factory :player do
-    first_name { Faker::Name.first_name }
-    last_name { Faker::Name.last_name }
-    nickname { nil }
+    first_name { Faker::Sports::Football.player.strip }
+    last_name { Faker::Sports::Football.position.strip }
+    nickname { "#{first_name.split(' ').last} #{last_name}" }
   end
 end

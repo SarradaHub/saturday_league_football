@@ -29,6 +29,15 @@ module Api
         allowed_fields = parse_fields
         round_json = filter_fields(round_json, allowed_fields) if allowed_fields.present?
         render json: round_json
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Round not found' }, status: :not_found
+      end
+
+      def summary
+        @round = Rounds::FindQuery.new(id: params[:id], user_id: current_user.id).call
+        render json: RoundSummaryPresenter.new(@round).as_json
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Round not found' }, status: :not_found
       end
 
       def create
@@ -49,18 +58,27 @@ module Api
       end
 
       def destroy
-        @round.destroy
-        head :no_content
+        if @round.destroy
+          head :no_content
+        else
+          message = @round.errors.full_messages.join(", ")
+          render json: {
+            error: {
+              code: "round_has_matches",
+              message: message.presence || "Não é possível excluir rodada com partidas associadas. Exclua as partidas primeiro."
+            }
+          }, status: :unprocessable_content
+        end
       end
 
       def statistics
-        stats = RoundStatistics.call(round_id: params[:id])
+        stats = Rounds::RoundStatistics.call(round_id: params[:id])
         render json: stats
       end
 
       def suggest_next_match
         round = find_round_for_sequence
-        suggestion = Rounds::NextMatchGenerator.call(round: round)
+        suggestion = LeagueEngine::Engine.suggest_next_match(round: round)
         render json: suggestion
       rescue StandardError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
@@ -68,10 +86,9 @@ module Api
 
       def create_next_match
         round = find_round_for_sequence
-        result = Rounds::NextMatchGenerator.call(
+        result = LeagueEngine::Engine.create_next_match(
           round: round,
-          winner_team_id: params[:winner_team_id],
-          create_match: true
+          winner_team_id: params[:winner_team_id]
         )
 
         if result.is_a?(Hash) && result[:match]
@@ -88,7 +105,7 @@ module Api
 
       def substitute_player
         round = find_round_for_sequence
-        result = Substitutions::ReplacePlayer.call(
+        result = LeagueEngine::Engine.replace_in_round(
           round: round,
           player_id: params[:player_id],
           match_id: params[:match_id]
@@ -125,7 +142,7 @@ module Api
         players_before = round.players.count
         teams_before = round.teams.count
 
-        RoundTeamGenerator.call(round)
+        Rounds::RoundTeamGenerator.call(round, active_teams_only: true)
 
         round.reload
         players_after = round.players.count
@@ -147,13 +164,17 @@ module Api
           players_after: players_after,
           distribution: team_distribution
         }, status: :ok
-      rescue RoundTeamGenerator::PlayerLimitError => e
+      rescue Rounds::RoundTeamGenerator::PlayerLimitError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
       rescue StandardError => e
         render json: { errors: [e.message] }, status: :unprocessable_content
       end
 
       private
+
+      def cacheable_resource?
+        request.get? && %w[index summary statistics].include?(action_name)
+      end
 
       def set_round
         @round = Round

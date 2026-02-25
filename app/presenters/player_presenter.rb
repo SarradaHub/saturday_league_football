@@ -59,11 +59,11 @@ class PlayerPresenter < ApplicationPresenter
   def total_matches
     team_ids = if resource.association(:player_teams).loaded?
                  resource.player_teams.map(&:team_id).compact.uniq
-               elsif resource.association(:teams).loaded?
+    elsif resource.association(:teams).loaded?
                  resource.teams.map(&:id).compact.uniq
-               else
+    else
                  resource.teams.pluck(:id)
-               end
+    end
 
     return 0 if team_ids.empty?
 

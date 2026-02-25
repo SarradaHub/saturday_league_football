@@ -14,8 +14,6 @@ module Championships
         count = championship.players.distinct.count
         championship.update_column(:players_count, count || 0)
       rescue ActiveRecord::RecordNotFound, NoMethodError
-        # Championship may have been destroyed during the operation
-        # Silently skip the update
       end
     end
 

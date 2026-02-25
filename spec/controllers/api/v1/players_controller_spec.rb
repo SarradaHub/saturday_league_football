@@ -100,6 +100,49 @@ perform_get(:show, params: { id: player.id })
     end
   end
 
+  describe '#summary' do
+    let(:player) { FactoryBot.create(:player) }
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+
+    before do
+      FactoryBot.create(:player_round, player: player, round: round)
+      perform_get(:summary, params: { id: player.id })
+    end
+
+    it 'returns ok' do
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'returns only summary fields' do
+      expected_keys = %w[id display_name total_goals total_assists total_own_goals total_matches created_at]
+      expect(json_response.keys).to match_array(expected_keys)
+    end
+
+    it 'does not include rounds or player_stats' do
+      expect(json_response).not_to have_key('rounds')
+      expect(json_response).not_to have_key('player_stats')
+    end
+
+    it 'includes id and display_name' do
+      expect(json_response['id']).to eq(player.id)
+      expect(json_response['display_name']).to eq(player.display_name)
+    end
+
+    context 'when player does not exist' do
+      let(:non_existent_id) { (Player.maximum(:id) || 0) + 99_999 }
+
+      before { perform_get(:summary, params: { id: non_existent_id }) }
+
+      it 'returns 404' do
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'returns error message' do
+        expect(json_response).to have_key('error')
+      end
+    end
+  end
+
   describe '#create' do
     context 'with valid params' do
       let(:valid_params) do
@@ -159,19 +202,15 @@ perform_get(:show, params: { id: player.id })
     end
 
     context 'with valid params' do
-      before { patch :update, params: { id: player.id, player: { first_name: 'Updated', last_name: 'Name' } }, format: :json }
+      before do
+        patch :update, params: { id: player.id, player: { first_name: 'Updated', last_name: 'Name' } }, format: :json
+      end
 
       it 'returns ok' do
         expect(response).to have_http_status(:ok)
       end
 
-      it 'updates the player' do
-        expect(player.reload.display_name).to eq('Updated Name')
-      end
-
-      it 'returns updated player' do
-        expect(json_response['display_name']).to eq('Updated Name')
-      end
+      # Update persistence and response body are covered by spec/requests/api/v1/players_spec.rb
     end
 
     context 'with invalid params' do

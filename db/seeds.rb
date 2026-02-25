@@ -123,14 +123,14 @@ begin
 
   admin = if defined?(FactoryBot)
             FactoryBot.create(:user, :admin, email: admin_email, password: admin_password, password_confirmation: admin_password)
-          else
+  else
             User.find_or_initialize_by(email: admin_email).tap do |u|
               u.password = admin_password
               u.password_confirmation = admin_password
               u.is_admin = true
               u.save!
             end
-          end
+  end
   print_item "Admin user created", admin_email, "Password: #{admin_password}"
 
   print_header "CREATING CHAMPIONSHIP"
@@ -140,28 +140,28 @@ begin
                      user: admin,
                      min_players_per_team: players_per_team,
                      max_players_per_team: players_per_team)
-                 else
+  else
                    Championship.find_or_initialize_by(name: 'Saturday League Demo', user: admin).tap do |c|
                      c.description ||= 'Championship used for seed scenarios'
                      c.min_players_per_team = players_per_team
                      c.max_players_per_team = players_per_team
                      c.save!
                    end
-                 end
+  end
   print_item "Championship ready", championship.name, "Players per team: #{players_per_team}"
 
   # RoundTeamGenerator reserves 1 slot per team for goalkeeper (slots = max_players_per_team - 1).
   # So we need TOTAL_PLAYERS = TEAM_COUNT * SLOTS_PER_TEAM for full teams after balance.
   TEAM_COUNT = 4
-  SLOTS_PER_TEAM = players_per_team - RoundTeamGenerator::RESERVED_SLOTS_FOR_GOALKEEPER
+  SLOTS_PER_TEAM = players_per_team - Rounds::TeamFormationRules::RESERVED_SLOTS_FOR_GOALKEEPER
   TOTAL_PLAYERS = TEAM_COUNT * SLOTS_PER_TEAM
 
   print_header "CREATING PLAYERS"
   players = if defined?(FactoryBot)
               FactoryBot.create_list(:player, TOTAL_PLAYERS)
-            else
+  else
               TOTAL_PLAYERS.times.map { |i| Player.create!(first_name: "Jogador", last_name: "##{i + 1}") }
-            end
+  end
   print_item "Players created", "Total: #{players.size}"
 
   # Rodada 1: Auto-balanceamento e Finalização.
@@ -169,13 +169,13 @@ begin
   print_header "ROUND 1 - AUTO-BALANCEAMENTO E FINALIZACAO"
   round1 = if defined?(FactoryBot)
              FactoryBot.create(:round, championship: championship)
-           else
+  else
              Round.create!(name: '1ª Rodada - Auto-balanceamento', championship: championship, round_date: Date.today)
-           end
+  end
   print_item "Round created", round1.name
 
   teams1 = add_players_to_round(round1, players)
-  expected_after_balance = championship.max_players_per_team - RoundTeamGenerator::RESERVED_SLOTS_FOR_GOALKEEPER
+  expected_after_balance = championship.max_players_per_team - Rounds::TeamFormationRules::RESERVED_SLOTS_FOR_GOALKEEPER
   teams1.each do |team|
     raise "Team #{team.name} has #{team.players.count} players, expected #{expected_after_balance}" if team.players.count != expected_after_balance
   end
@@ -224,9 +224,9 @@ begin
   print_header "ROUND 2 - ESTATISTICAS E SEQUENCIA AUTOMATICA"
   round2 = if defined?(FactoryBot)
              FactoryBot.create(:round, championship: championship)
-           else
+  else
              Round.create!(name: '2ª Rodada - Estatisticas', championship: championship, round_date: Date.today)
-           end
+  end
   print_item "Round created", round2.name
 
   teams2 = add_players_to_round(round2, players)
@@ -250,7 +250,7 @@ begin
     name_suffix: 'Stats Match 2'
   )
 
-  stats = RoundStatistics.call(round_id: round2.id)
+  stats = Rounds::RoundStatistics.call(round_id: round2.id)
   print_subitem "Round statistics summary",
                 "Players: #{stats.size}",
                 "Top scorer goals: #{stats.values.map { |s| s[:goals] }.max || 0}"
@@ -283,9 +283,9 @@ begin
   print_header "ROUND 3 - GOLEIROS EXTERNOS E VALIDACOES"
   round3 = if defined?(FactoryBot)
              FactoryBot.create(:round, championship: championship)
-           else
+  else
              Round.create!(name: '3ª Rodada - Goleiros e Assistencias', championship: championship, round_date: Date.today)
-           end
+  end
   print_item "Round created", round3.name
 
   teams3 = add_players_to_round(round3, players)
@@ -309,9 +309,9 @@ begin
   # Goleiro apenas goleiro (não joga na linha) - criar novo jogador para isso
   keeper_only = if defined?(FactoryBot)
                   FactoryBot.create(:player)
-                else
+  else
                   Player.create!(name: 'Goleiro Exclusivo')
-                end
+  end
   PlayerStat.create!(
     player: keeper_only,
     team: t3_team2,

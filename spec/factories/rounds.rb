@@ -2,11 +2,12 @@
 
 FactoryBot.define do
   factory :round do
-    name { "#{Faker::Number.decimal_part(digits: 2)} Rodada" }
-    round_date { Faker::Date.on_day_of_week_between(day: :saturday, from: '2025-01-01', to: '2025-12-31') }
+    championship { FactoryBot.create(:championship) }
+    round_date { Faker::Date.on_day_of_week_between(day: :saturday, from: Time.now.beginning_of_year, to: Time.now.end_of_year) }
+    name { round_date.strftime('%d/%m/%Y') }
 
     trait :with_championship do
-      championship { FactoryBot.create(:championship) }
+      # kept for backwards compatibility; base factory already sets championship
     end
   end
 end

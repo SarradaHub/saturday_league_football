@@ -11,7 +11,18 @@ module PlayerStats
     end
 
     def call
-      scope = relation
+      scope = relation.select(
+        :id,
+        :goals,
+        :own_goals,
+        :assists,
+        :was_goalkeeper,
+        :match_id,
+        :team_id,
+        :player_id,
+        :created_at,
+        :updated_at
+      )
 
       if user_id.present?
         scope = scope.joins(match: { round: :championship })

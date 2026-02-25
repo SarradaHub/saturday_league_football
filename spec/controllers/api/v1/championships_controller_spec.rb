@@ -129,6 +129,43 @@ RSpec.describe Api::V1::ChampionshipsController, type: :controller do
     end
   end
 
+  describe '#summary' do
+    before { perform_request(:summary, params: { id: championship_sample.id }) }
+
+    it 'returns ok' do
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'returns only summary fields' do
+      expected_keys = %w[id name min_players_per_team max_players_per_team rounds_count players_count created_at]
+      expect(json_response.keys).to match_array(expected_keys)
+    end
+
+    it 'does not include rounds or players arrays' do
+      expect(json_response).not_to have_key('rounds')
+      expect(json_response).not_to have_key('players')
+    end
+
+    it 'includes id and name' do
+      expect(json_response['id']).to eq(championship_sample.id)
+      expect(json_response['name']).to eq(championship_sample.name)
+    end
+
+    context 'when championship does not exist' do
+      let(:non_existent_id) { (Championship.maximum(:id) || 0) + 99_999 }
+
+      before { perform_request(:summary, params: { id: non_existent_id }) }
+
+      it 'returns 404' do
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'returns error message' do
+        expect(json_response).to have_key('error')
+      end
+    end
+  end
+
   describe '#create' do
     subject(:perform_request) { post :create, params: { championship: params }, format: :json }
 

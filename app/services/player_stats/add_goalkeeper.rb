@@ -45,14 +45,20 @@ module PlayerStats
       match_team_ids = [match.team_1_id, match.team_2_id].compact
       return unless match_team_ids.include?(team.id)
 
-      PlayerTeam.find_or_create_by!(team_id: team.id, player_id: player_id)
+      # Use with_deleted so we restore a soft-deleted PlayerTeam instead of failing
+      # when the player was previously removed from this team (e.g. after redistribution).
+      player_team = PlayerTeam.with_deleted.find_by(team_id: team.id, player_id: player_id)
+      if player_team
+        player_team.restore if player_team.deleted?
+      else
+        PlayerTeam.create!(team_id: team.id, player_id: player_id)
+      end
     end
 
     def validate_params!
       if match_id.blank? || team_id.blank? || player_id.blank?
-        raise MissingParamsError, "match_id, team_id and player_id are required"
+        raise MissingParamsError, 'match_id, team_id and player_id are required'
       end
     end
   end
 end
-

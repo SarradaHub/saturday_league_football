@@ -114,7 +114,7 @@ RSpec.describe Teams::CollectionQuery do
         it 'returns second page' do
           # Ensure we have exactly 3 teams for this test
           expect(Team.count).to eq(3), "Expected 3 teams, but found #{Team.count}. Teams: #{Team.pluck(:name).join(', ')}"
-          
+
           result = query_result.to_a
           # With 3 teams (A, B, C) and per_page: 2, page 2 should have 1 item (Team C)
           # But if there are other teams in the DB, it might return 2 items

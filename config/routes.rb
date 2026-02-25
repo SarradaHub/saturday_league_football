@@ -22,11 +22,13 @@ Rails.application.routes.draw do
       resources :championships, defaults: { format: :json } do
         member do
           get :statistics
+          get :summary
         end
       end
       resources :rounds, defaults: { format: :json } do
         member do
           get :statistics
+          get :summary
           post :suggest_next_match
           post :create_next_match
           post :substitute_player
@@ -37,12 +39,18 @@ Rails.application.routes.draw do
       end
       resources :matches, defaults: { format: :json } do
         member do
+          get :summary
           post :finalize
           post :substitute_player
         end
       end
-      resources :teams, defaults: { format: :json }
+      resources :teams, defaults: { format: :json } do
+        member do
+          post :toggle_block
+        end
+      end
       resources :players, defaults: { format: :json } do
+        get :summary, on: :member
         post 'add_to_round', on: :member
         post 'add_to_team', on: :member
         get 'match_stats', on: :member

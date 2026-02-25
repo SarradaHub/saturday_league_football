@@ -75,7 +75,7 @@ module Api
         permitted_stats = params[:player_stats]&.map do |stat_params|
           stat_params.permit(:player_id, :team_id, :goals, :assists, :own_goals, :was_goalkeeper).to_h
         end
-        stats = PlayerStats::BulkUpsert.call(
+        stats = LeagueEngine::Engine.bulk_update_player_stats(
           match_id: params[:match_id],
           payload: permitted_stats
         )
@@ -89,7 +89,7 @@ module Api
       end
 
       def add_goalkeeper
-        stat = PlayerStats::AddGoalkeeper.call(
+        stat = LeagueEngine::Engine.add_goalkeeper(
           match_id: params[:match_id],
           team_id: params[:team_id],
           player_id: params[:player_id]

@@ -25,8 +25,15 @@ module Api
 
       def statistics
         @championship = Championships::FindQuery.new(id: params[:id], user_id: current_user.id).call
-        stats = ChampionshipStatistics.call(championship_id: @championship.id)
+        stats = Championships::ChampionshipStatistics.call(championship_id: @championship.id)
         render json: stats
+      rescue ActiveRecord::RecordNotFound
+        render json: { error: 'Championship not found' }, status: :not_found
+      end
+
+      def summary
+        @championship = Championships::FindQuery.new(id: params[:id], user_id: current_user.id).call
+        render json: ChampionshipSummaryPresenter.new(@championship).as_json
       rescue ActiveRecord::RecordNotFound
         render json: { error: 'Championship not found' }, status: :not_found
       end
@@ -93,6 +100,10 @@ module Api
       end
 
       private
+
+      def cacheable_resource?
+        request.get? && %w[index summary statistics].include?(action_name)
+      end
 
       def set_championship
         @championship = Championship.where(user_id: current_user.id).find(params[:id])

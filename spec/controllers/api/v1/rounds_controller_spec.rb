@@ -193,12 +193,31 @@ RSpec.describe Api::V1::RoundsController, type: :controller do
       delete :destroy, params: { id: round.id }, format: :json
       expect(response).to have_http_status(:no_content)
     end
+
+    context 'when round has associated matches' do
+      let!(:team1) { FactoryBot.create(:team, round: round) }
+      let!(:team2) { FactoryBot.create(:team, round: round) }
+      let!(:match) { FactoryBot.create(:match, round: round, team_1: team1, team_2: team2) }
+
+      it 'does not delete the round and returns unprocessable content' do
+        expect { delete :destroy, params: { id: round.id }, format: :json }
+          .not_to change(Round, :count)
+        expect(response).to have_http_status(:unprocessable_content)
+      end
+
+      it 'returns error body with code and message' do
+        delete :destroy, params: { id: round.id }, format: :json
+        expect(json_response['error']['code']).to eq('round_has_matches')
+        expect(json_response['error']['message']).to include('partidas associadas')
+      end
+    end
   end
 
   describe '#remove_player' do
     let(:round) { FactoryBot.create(:round, championship: championship) }
     let(:player) { FactoryBot.create(:player, first_name: 'Player', last_name: 'to remove') }
-    let!(:player_round) { FactoryBot.create(:player_round, round: round, player: player) }
+
+    before { FactoryBot.create(:player_round, round: round, player: player) }
 
     it 'removes the player from the round and returns no content' do
       expect {
@@ -237,7 +256,7 @@ perform_get(:statistics, params: { id: round.id })
     end
 
     it 'includes player stats in response' do
-      # RoundStatistics returns hash with integer keys, but JSON serialization converts to strings
+      # Rounds::RoundStatistics returns hash with integer keys, but JSON serialization converts to strings
       # Check if stats exist for the player (could be string or integer key)
       player_key = json_response.keys.find { |k| k.to_i == player.id } || player.id.to_s
       expect(json_response).to have_key(player_key)
@@ -260,9 +279,12 @@ perform_get(:statistics, params: { id: round.id })
 
     before { perform_post(:suggest_next_match, params: { id: round.id }) }
 
-    it 'returns suggested match' do
+    it 'returns ok with needs_winner_selection false' do
       expect(response).to have_http_status(:ok)
       expect(json_response['needs_winner_selection']).to be(false)
+    end
+
+    it 'returns suggested match with team_1 and team_2' do
       expect(json_response['suggested_match']['team_1']['id']).to eq(team_1.id)
       expect(json_response['suggested_match']['team_2']['id']).to eq(team_2.id)
     end
@@ -279,6 +301,46 @@ perform_get(:statistics, params: { id: round.id })
       expect(response).to have_http_status(:created)
       expect(json_response['match']['team_1']['id']).to eq(team_1.id)
       expect(json_response['match']['team_2']['id']).to eq(team_2.id)
+    end
+  end
+
+  describe '#summary' do
+    let(:round) { FactoryBot.create(:round, championship: championship) }
+
+    before { perform_get(:summary, params: { id: round.id }) }
+
+    it 'returns ok' do
+      expect(response).to have_http_status(:ok)
+    end
+
+    it 'returns only summary fields' do
+      expected_keys = %w[id name round_date championship_id matches_count players_count created_at]
+      expect(json_response.keys).to match_array(expected_keys)
+    end
+
+    it 'does not include matches, players or teams' do
+      expect(json_response).not_to have_key('matches')
+      expect(json_response).not_to have_key('players')
+      expect(json_response).not_to have_key('teams')
+    end
+
+    it 'includes id and name' do
+      expect(json_response['id']).to eq(round.id)
+      expect(json_response['name']).to eq(round.name)
+    end
+
+    context 'when round does not exist' do
+      let(:non_existent_id) { (Round.maximum(:id) || 0) + 99_999 }
+
+      before { perform_get(:summary, params: { id: non_existent_id }) }
+
+      it 'returns 404' do
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it 'returns error message' do
+        expect(json_response).to have_key('error')
+      end
     end
   end
 end
