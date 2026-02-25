@@ -57,7 +57,7 @@ module Substitutions
       active_team_ids = active_match_team_ids
 
       teams_ordered.each do |team|
-        next if active_team_ids.include?(team.id) || team.players.empty?
+        next if active_team_ids.include?(team.id) || team.players_count.to_i.zero?
 
         scope = team.players.where.not(id: player_id)
         candidate = scope.joins(:player_rounds)
