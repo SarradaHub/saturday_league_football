@@ -22,6 +22,12 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+# Required so the called workflow (security-scan.yaml) can run CodeQL and write security events
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+
 jobs:
   security:
     uses: SarradaHub/platform/.github/workflows/security-scan.yaml@main
