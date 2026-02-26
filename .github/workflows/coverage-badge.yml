@@ -5,6 +5,9 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   coverage:
     runs-on: ubuntu-latest
@@ -53,7 +56,7 @@ jobs:
         run: |
           mkdir -p badges
           
-          # Extract coverage from SimpleCov if available
+          # Extract coverage from SimpleCov if available (handles both line coverage numbers and branch coverage arrays)
           if [ -f "coverage/.resultset.json" ]; then
             PERCENTAGE=$(ruby -rjson -e "
               data = JSON.parse(File.read('coverage/.resultset.json'))
@@ -61,9 +64,19 @@ jobs:
               covered = 0
               data.each do |_, result|
                 result['coverage'].each do |_, lines|
+                  next unless lines.is_a?(Array)
                   lines.each do |line|
-                    total += 1
-                    covered += 1 if line && line > 0
+                    if line.is_a?(Array)
+                      line.each do |l|
+                        total += 1
+                        covered += 1 if l.is_a?(Numeric) && l.to_i > 0
+                      end
+                    elsif line.is_a?(Numeric)
+                      total += 1
+                      covered += 1 if line.to_i > 0
+                    elsif line.nil?
+                      total += 1
+                    end
                   end
                 end
               end

@@ -3,10 +3,30 @@ name: Security Scan
 on:
   push:
     branches: [main, develop]
+    paths:
+      - '**/*.rb'
+      - '**/*.js'
+      - '**/*.ts'
+      - 'Gemfile*'
+      - 'package.json'
+      - '.github/workflows/security.yml'
   pull_request:
     branches: [main, develop]
+    paths:
+      - '**/*.rb'
+      - '**/*.js'
+      - '**/*.ts'
+      - 'Gemfile*'
+      - 'package.json'
+      - '.github/workflows/security.yml'
   schedule:
     - cron: '0 2 * * *'
+
+# Required so the called workflow (security-scan.yaml) can run CodeQL and write security events
+permissions:
+  contents: read
+  actions: read
+  security-events: write
 
 jobs:
   security:
