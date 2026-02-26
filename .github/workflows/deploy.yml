@@ -23,10 +23,26 @@ jobs:
         run: |
           RAILS_ENV=production bundle exec rails assets:precompile || true
 
+      - name: Smoke test migrations status
+        run: |
+          if [ -z "$DATABASE_URL" ] || [ -z "$RAILS_MASTER_KEY" ]; then
+            echo "::notice::Skipping smoke tests because DATABASE_URL or RAILS_MASTER_KEY is not set."
+            exit 0
+          fi
+          RAILS_ENV=production bundle exec rails db:migrate:status
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+          RAILS_ENV: production
+
       - name: Run database migrations
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::DATABASE_URL secret is not set. Add it in GitHub Settings → Secrets and variables → Actions (or in the production environment)."
+            exit 1
+          fi
+          if [ -z "$RAILS_MASTER_KEY" ]; then
+            echo "::error::RAILS_MASTER_KEY secret is not set. Add it in GitHub Settings → Secrets and variables → Actions (or in the production environment)."
             exit 1
           fi
           RAILS_ENV=production bundle exec rails db:migrate

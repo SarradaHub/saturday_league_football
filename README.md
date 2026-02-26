@@ -47,3 +47,22 @@ The app runs on `http://localhost:3000` with Rails server, Vite, and background 
 ## Deployment
 
 Deployment is automated with Kamal. Review `config/deploy.yml` for server information and ensure the target hosts expose PostgreSQL and Redis as required services.
+
+## GitHub Actions & Required Checks
+
+The repository ships with several GitHub Actions workflows under `.github/workflows`:
+
+- `ci.yml` (`rails-ci` job): runs the full Rails test suite and should be marked as **required** on protected branches.
+- `coverage-badge.yml` (`coverage` job): generates and commits the coverage badge; it can optionally be marked as **required** to enforce coverage runs on `main`/`develop`.
+- `security.yml` (`security` job): runs security scans (CodeQL, dependency audit, secret scan) and is recommended as a **required** check.
+
+To configure required checks on GitHub:
+
+1. Go to **Settings → Branches → Branch protection rules**.
+2. Edit (or create) the rule for `main` (and `develop`, if applicable).
+3. Enable **“Require status checks to pass before merging”**.
+4. Add the following checks by their job names:
+   - `rails-ci`
+   - `coverage`
+   - `security`
+5. Save the rule.

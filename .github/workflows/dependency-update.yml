@@ -1,5 +1,10 @@
 name: Dependency Update
 
+# This workflow complements Dependabot:
+# - Dependabot opens small, focused PRs daily for Bundler and GitHub Actions.
+# - This scheduled job performs a broader weekly sweep with `bundle update` and security audits,
+#   creating a single consolidated PR when changes are detected.
+
 on:
   schedule:
     - cron: '0 9 * * 1'

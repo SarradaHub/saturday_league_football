@@ -3,8 +3,22 @@ name: Security Scan
 on:
   push:
     branches: [main, develop]
+    paths:
+      - '**/*.rb'
+      - '**/*.js'
+      - '**/*.ts'
+      - 'Gemfile*'
+      - 'package.json'
+      - '.github/workflows/security.yml'
   pull_request:
     branches: [main, develop]
+    paths:
+      - '**/*.rb'
+      - '**/*.js'
+      - '**/*.ts'
+      - 'Gemfile*'
+      - 'package.json'
+      - '.github/workflows/security.yml'
   schedule:
     - cron: '0 2 * * *'
 
