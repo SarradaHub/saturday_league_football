@@ -2,10 +2,12 @@
 
 class AddDataIntegrityConstraints < ActiveRecord::Migration[8.0]
   def change
-    Match.where(name: nil).update_all(name: 'Unnamed match')
-    Round.where(name: nil).update_all(name: 'Unnamed round')
-    Player.where(name: nil).update_all(name: 'Unnamed player')
-    Team.where(name: nil).update_all(name: 'Unnamed team')
+    # Use unscoped: models include SoftDeletable (default_scope on is_deleted), but this
+    # migration runs before the is_deleted columns are added by later migrations.
+    Match.unscoped.where(name: nil).update_all(name: 'Unnamed match')
+    Round.unscoped.where(name: nil).update_all(name: 'Unnamed round')
+    Player.unscoped.where(name: nil).update_all(name: 'Unnamed player')
+    Team.unscoped.where(name: nil).update_all(name: 'Unnamed team')
 
     change_column_null :matches, :name, false
     change_column_null :rounds, :name, false
