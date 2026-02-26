@@ -18,8 +18,10 @@ default: &default
   adapter: postgresql
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
+  <% if ENV["DATABASE_URL"].present? %>
   url: <%= ENV["DATABASE_URL"] %>
   prepared_statements: <%= (ENV["DATABASE_URL"] || "").include?(":6543/") ? false : true %>
+  <% end %>
   username: <%= ENV.fetch("PGUSER", "postgres") %>
   password: <%= ENV.fetch("PGPASSWORD", "postgres") %>
   host: <%= ENV.fetch("PGHOST", "localhost") %>

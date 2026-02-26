@@ -25,7 +25,12 @@ jobs:
 
       - name: Run database migrations
         run: |
-          bundle exec rails db:migrate
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::DATABASE_URL secret is not set. Add it in GitHub Settings → Secrets and variables → Actions (or in the production environment)."
+            exit 1
+          fi
+          RAILS_ENV=production bundle exec rails db:migrate
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+          RAILS_ENV: production
