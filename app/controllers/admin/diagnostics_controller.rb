@@ -1,6 +1,6 @@
 class Admin::DiagnosticsController < ApplicationController
   def migrations
-    context = ActiveRecord::Base.connection.migration_context
+    context  = ActiveRecord::MigrationContext.new(ActiveRecord::Migrator.migrations_paths)
     statuses = context.migrations_status
 
     pending = statuses.select { |state, _version, _name| state == 'down' }
