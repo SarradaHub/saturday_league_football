@@ -131,7 +131,7 @@ jobs:
 
       - name: Create PR with coverage badge
         if: github.event_name != 'pull_request' && success()
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/coverage-badge-${{ github.ref_name }}
