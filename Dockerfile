@@ -1,9 +1,9 @@
 # Base image with specified Ruby version
 FROM ruby:3.3.6
 
-# Set environment variables
-ENV RAILS_ENV=development \
-    NODE_ENV=development \
+# Set default environment variables (can be overridden at runtime)
+ENV RAILS_ENV=production \
+    NODE_ENV=production \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLER_VERSION=2.4.0 \
     PATH="/usr/local/bundle/bin:${PATH}"
@@ -46,4 +46,4 @@ EXPOSE 3000
 ENTRYPOINT ["/app/bin/docker-entrypoint"]
 
 # Command to start the Rails server
-CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
+CMD ["./bin/rails", "server", "-b", "0.0.0.0"]
