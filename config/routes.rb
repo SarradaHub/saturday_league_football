@@ -13,6 +13,11 @@ Rails.application.routes.draw do
   # Gem-based health check endpoints (e.g. /health_check, /health_check/all.json)
   health_check_routes
 
+  # Admin diagnostics
+  namespace :admin do
+    get 'migrations', to: 'diagnostics#migrations'
+  end
+
   # Devise routes for User authentication
   devise_for :users,
              skip: [:registrations, :passwords, :confirmations],
