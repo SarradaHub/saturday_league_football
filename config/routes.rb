@@ -7,6 +7,12 @@ Rails.application.routes.draw do
   get 'health', to: 'health#health'
   get 'ready', to: 'health#ready'
 
+  # Public root endpoint
+  root to: 'health#health'
+
+  # Gem-based health check endpoints (e.g. /health_check, /health_check/all.json)
+  health_check_routes
+
   # Devise routes for User authentication
   devise_for :users,
              skip: [:registrations, :passwords, :confirmations],

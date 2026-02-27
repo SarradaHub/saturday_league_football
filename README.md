@@ -48,6 +48,28 @@ The app runs on `http://localhost:3000` with Rails server, Vite, and background 
 
 Deployment is automated with Kamal. Review `config/deploy.yml` for server information and ensure the target hosts expose PostgreSQL and Redis as required services.
 
+## Health Checks
+
+Saturday League Football expõe endpoints de health check em dois níveis:
+
+- **Endpoints de API próprios**
+  - `GET /health` → status básico da API (JSON) com `status`, `service`, `timestamp` e `environment`.
+  - `GET /ready` → readiness check com verificação de conexão ao banco de dados; retorna `503` se o banco estiver indisponível.
+  - `GET /up` → endpoint padrão do Rails (`rails/health#show`), útil para liveness simples.
+
+- **Endpoints via gem [`health_check`](https://github.com/Purple-Devs/health_check)**
+  - `GET /health_check` → checagens padrão configuradas (`database`, `migrations`, `site`); retorna texto simples.
+  - `GET /health_check/all.json` → todas as checagens configuradas com resposta JSON:
+    - Exemplo de resposta: `{ "healthy": true, "message": "success" }`.
+  - Em caso de falha em algum check, o status HTTP padrão é `500`.
+
+Recomendações:
+
+- Para monitoramento externo (Pingdom, NewRelic, etc.), use preferencialmente `GET /health_check/all.json` verificando `"healthy": true`.
+- Para probes de liveness/readiness de infraestrutura (containers/orquestradores), use:
+  - Liveness: `GET /up` ou `GET /health`.
+  - Readiness: `GET /ready`.
+
 ## GitHub Actions & Required Checks
 
 The repository ships with several GitHub Actions workflows under `.github/workflows`:

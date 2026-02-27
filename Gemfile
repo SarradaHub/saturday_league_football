@@ -21,6 +21,7 @@ gem 'stimulus-rails'
 gem 'thruster', require: false
 gem 'turbo-rails'
 gem 'tzinfo-data', platforms: %i[windows jruby]
+gem 'health_check'
 
 # Microservices integration
 gem 'diplomat' # Consul client
