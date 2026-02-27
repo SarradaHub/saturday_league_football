@@ -10,9 +10,26 @@ fi
 # This is safe because if we're not starting a server, the file won't exist anyway
 rm -f /app/tmp/pids/server.pid
 
-# If running the rails server then create or migrate existing database
-if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
-  ./bin/rails db:prepare
+# If the container is invoked with Rails commands, decide what to do.
+if [ "$1" = "./bin/rails" ] || [ "$1" = "bin/rails" ] || [ "$1" = "rails" ]; then
+  rails_cmd="$1"
+  shift
+
+  # Case 1: container command is "rails db:migrate" (Render Docker Command).
+  # Run the migration and then start the Rails server so the container stays alive.
+  if [ "$1" = "db:migrate" ] || [ "$1" = "db:prepare" ]; then
+    "$rails_cmd" "$@"
+    exec ./bin/rails server -b 0.0.0.0
+  fi
+
+  # Case 2: container command is "rails server ..." – run db:prepare first.
+  if [[ " $* " == *" server "* ]]; then
+    ./bin/rails db:prepare
+    exec "$rails_cmd" "$@"
+  fi
+
+  # Fallback: just exec the rails command as-is.
+  exec "$rails_cmd" "$@"
 fi
 
 exec "${@}"

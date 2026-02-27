@@ -81,3 +81,7 @@ config/credentials.yml.enc
 
 /config/master.key
 secrets.yml
+
+# Ignore key files for decrypting credentials and more.
+/config/*.key
+
