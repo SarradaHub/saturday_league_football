@@ -25,4 +25,3 @@ HealthCheck.setup do |config|
   # Restringir custo dos checks em ambientes com monitoramento frequente
   config.max_age = 1
 end
-
