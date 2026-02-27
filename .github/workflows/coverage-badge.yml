@@ -3,6 +3,9 @@ name: Coverage Badge
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - 'badges/**'
+      - '.github/workflows/coverage-badge.yml'
   workflow_dispatch:
 
 permissions:
@@ -126,19 +129,19 @@ jobs:
           
           echo "Coverage: $PERCENTAGE%"
 
-      - name: Commit coverage badge
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          if [ -d "badges" ] && [ "$(ls -A badges)" ]; then
-            git add badges/
-            git commit -m "Update coverage badge [skip ci]" || exit 0
-            
-            if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
-              git push
-            fi
-          fi
+      - name: Create PR with coverage badge
+        if: github.event_name != 'pull_request' && success()
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: chore/coverage-badge-${{ github.ref_name }}
+          commit-message: 'Update coverage badge [skip ci]'
+          title: 'chore: update coverage badge'
+          body: |
+            Atualização automática do badge de cobertura de testes.
+            Faça o merge para atualizar o badge na branch **${{ github.ref_name }}**.
+          add-paths: badges/
+          delete-branch: false
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v7
