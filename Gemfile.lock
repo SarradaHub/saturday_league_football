@@ -124,9 +124,10 @@ GEM
       responders
       warden (~> 1.2.3)
     diff-lcs (1.6.2)
-    diplomat (2.6.5)
+    diplomat (2.6.6)
       deep_merge (~> 1.2)
       faraday (>= 0.9, < 3.0, != 2.0.0)
+      ostruct
     docile (1.4.1)
     dotenv (3.2.0)
     dotenv-rails (3.2.0)
@@ -184,7 +185,7 @@ GEM
     jbuilder (2.14.1)
       actionview (>= 7.0.0)
       activesupport (>= 7.0.0)
-    json (2.18.1)
+    json (2.19.1)
     json-schema (6.1.0)
       addressable (~> 2.8)
       bigdecimal (>= 3.1, < 5)
