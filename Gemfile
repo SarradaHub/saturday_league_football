@@ -52,7 +52,7 @@ group :development, :test do
   gem 'rspec-core'
   gem 'rspec-expectations'
   gem 'rspec-mocks'
-  gem 'rspec-rails', '~> 8.0.3'
+  gem 'rspec-rails', '~> 8.0.4'
   gem 'simplecov'
   gem 'bullet'
 end
